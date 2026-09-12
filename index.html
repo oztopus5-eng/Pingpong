@@ -1,4 +1,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="PingPong">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f4faff">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
 <title>PingPong — Play · Connect · Keep Score</title>
 <style>
 :root{
@@ -21,7 +28,8 @@ body{
   background:linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 58%,var(--sky-3) 100%);
   background-attachment:fixed;color:var(--ink);
   font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",Quicksand,Nunito,"Trebuchet MS",system-ui,sans-serif;
-  font-size:16px;line-height:1.45;overflow-x:hidden;
+  font-size:16px;line-height:1.45;overflow-x:hidden;overscroll-behavior-y:none;
+  -webkit-text-size-adjust:100%;
 }
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
 input{font:inherit}
@@ -34,7 +42,7 @@ input{font:inherit}
 .mark{font-weight:800;letter-spacing:-1.2px;color:var(--blue-deep)}
 .mark .lo{color:var(--blue)}
 .apphead{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:9px;
-  padding:16px 0 12px;background:linear-gradient(180deg,var(--sky-1) 68%,rgba(244,250,255,0))}
+  padding:calc(16px + env(safe-area-inset-top)) 0 12px;background:linear-gradient(180deg,var(--sky-1) 68%,rgba(244,250,255,0))}
 .apphead .logo{width:30px;height:30px;flex:none}
 .apphead .mark{font-size:21px}
 .apphead .back{margin-left:-8px;padding:4px 10px;color:var(--blue-deep);font-size:26px;line-height:1;font-weight:700}
@@ -171,7 +179,7 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
 .flyball:after{content:"";position:absolute;right:18px;top:9px;width:74px;height:8px;border-radius:8px;
   background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.85));filter:blur(1.5px)}
 #netbanner{position:fixed;left:0;right:0;top:0;z-index:95;background:#fdf0d5;color:#8a5b12;
-  font-weight:800;font-size:13px;text-align:center;padding:9px 16px;transform:translateY(-100%);
+  font-weight:800;font-size:13px;text-align:center;padding:calc(9px + env(safe-area-inset-top)) 16px 9px;transform:translateY(-100%);
   transition:transform .3s ease;box-shadow:0 6px 16px -10px rgba(21,71,126,.5)}
 #netbanner.on{transform:none}
 #demonote{background:#fdf0d5;color:#8a5b12;border-radius:14px;padding:11px 14px;font-size:13px;
@@ -284,7 +292,7 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
 
 <!-- ================= CREATE ACCOUNT ================= -->
 <section class="screen" id="s-auth">
-  <div style="height:30px"></div>
+  <div style="height:calc(30px + env(safe-area-inset-top))"></div>
   <div class="card center" style="padding:26px 20px 24px;position:relative;overflow:hidden">
     <svg style="width:92px;height:92px"><use href="#logo"/></svg>
     <h2 style="margin:14px 0 4px;font-size:25px;color:var(--navy);letter-spacing:-.6px">Create Your Account</h2>
@@ -559,6 +567,34 @@ function blankUser(name){
   return { username:name, lower:name.toLowerCase(), created:Date.now(),
     wins:0, losses:0, streak:0, best:0, friends:[], requests:[], invites:[], matches:[] };
 }
+/* Firebase never stores empty arrays or empty objects — it deletes the node.
+   A brand new account therefore reads back with friends/requests/invites/matches
+   missing entirely, and arrays can also come back as {0:..,1:..} objects. Every
+   record gets normalised on the way in so the rest of the app can trust it. */
+function asArray(v){
+  if (Array.isArray(v)) return v.filter(x => x != null);
+  if (v && typeof v === 'object') return Object.keys(v).sort((a,b) => a-b).map(k => v[k]).filter(x => x != null);
+  return [];
+}
+function normUser(u){
+  if (!u) return null;
+  u.friends = asArray(u.friends);
+  u.requests = asArray(u.requests);
+  u.invites = asArray(u.invites);
+  u.matches = asArray(u.matches);
+  u.wins = u.wins || 0; u.losses = u.losses || 0;
+  u.streak = u.streak || 0; u.best = u.best || 0;
+  u.username = u.username || u.lower || '?';
+  return u;
+}
+function normGame(g){
+  if (!g) return null;
+  g.sa = g.sa || 0; g.sb = g.sb || 0; g.rev = g.rev || 0;
+  return g;
+}
+async function getUser(lower){ return normUser(await S.get(UK(lower))); }
+async function getGame(id){ return normGame(await S.get(GK(id))); }
+
 function rate(u){ const p = u.wins + u.losses; return p ? Math.round(u.wins/p*100) : 0; }
 
 /* ================= state ================= */
@@ -568,7 +604,7 @@ async function fillNames(){
   if (!me) return;
   const miss = me.friends.filter(f => !NAMES[f]);
   if (!miss.length) return;
-  for (const f of miss) { const u = await S.get(UK(f)); NAMES[f] = u ? u.username : f; }
+  for (const f of miss) { const u = await getUser(f); NAMES[f] = u ? u.username : f; }
   if (view === 'home') renderHome();
   else if (view === 'friends') renderFriends();
   else if (view === 'games') renderGame();
@@ -581,10 +617,10 @@ let seenMatches = 0, poller = null, busy = false, searchResults = null, inviteSe
   const pref = await S.get('pp:sound', false);
   if (pref && pref.off) soundOn = false;
   const sess = await S.get('pp:session', false);
-  if (sess && sess.lower) { const u = await S.get(UK(sess.lower)); if (u) me = u; }
+  if (sess && sess.lower) { const u = await getUser(sess.lower); if (u) me = u; }
   if (me) {
     const aid = await S.get('pp:active', false);
-    if (aid) { const g = await S.get(GK(aid)); if (g && g.status !== 'done' && g.status !== 'declined') activeGame = g; }
+    if (aid) { const g = await getGame(aid); if (g && g.status !== 'done' && g.status !== 'declined') activeGame = g; }
     seenMatches = me.matches.length;
     await enter();
   } else {
@@ -613,13 +649,14 @@ async function createAccount(){
   if (!/^[A-Za-z0-9_]{2,16}$/.test(raw)) { err.textContent = 'Use 2–16 letters, numbers or underscores.'; sfx('error'); return; }
   err.textContent = 'Checking…';
   const lower = raw.toLowerCase();
-  if (await S.get(UK(lower))) { err.textContent = 'That username is already taken. Try another one.'; sfx('error'); return; }
+  if (await getUser(lower)) { err.textContent = 'That username is already taken. Try another one.'; sfx('error'); return; }
   me = blankUser(raw);
   if (!await S.set(UK(lower), me)) { err.textContent = 'Could not save that. Check your connection and try again.'; me = null; return; }
   await S.set('pp:session', { lower }, false);
   err.textContent = ''; seenMatches = 0;
   sfx('finish'); flyBall();
-  await enter();
+  try { await enter(); }
+  catch (e) { err.textContent = 'Something went wrong loading your account: ' + e.message; }
 }
 async function signOut(){
   await S.set('pp:session', null, false);
@@ -641,9 +678,9 @@ async function toggleSound(){
 /* ================= sync ================= */
 async function refreshMe(){
   if (!me) return;
-  const u = await S.get(UK(me.lower));
+  const u = await getUser(me.lower);
   if (u) me = u;
-  if (activeGame) { const g = await S.get(GK(activeGame.id)); if (g) activeGame = g; }
+  if (activeGame) { const g = await getGame(activeGame.id); if (g) activeGame = g; }
 }
 async function tick(){
   if (busy || !me) return;
@@ -783,7 +820,7 @@ async function doSearch(){
   const keys = await S.list('pp:u:');
   const hits = keys.map(k => k.slice(5)).filter(l => l.includes(q)).slice(0, 8);
   const recs = [];
-  for (const l of hits) { const u = await S.get(UK(l)); if (u) recs.push(u); }
+  for (const l of hits) { const u = await getUser(l); if (u) recs.push(u); }
   recs.sort((a,b) => (a.lower===q?-1:0) - (b.lower===q?-1:0));
   recs.forEach(u => NAMES[u.lower] = u.username);
   searchResults = recs; busy = false;
@@ -791,7 +828,7 @@ async function doSearch(){
 }
 async function addFriend(lower){
   busy = true;
-  const them = await S.get(UK(lower));
+  const them = await getUser(lower);
   if (them && !them.requests.some(r => r.from === me.lower) && !them.friends.includes(me.lower)) {
     them.requests.unshift({ from: me.lower, fromName: me.username, at: Date.now() });
     await S.set(UK(lower), them);
@@ -804,8 +841,8 @@ async function addFriend(lower){
 }
 async function acceptFriend(lower){
   busy = true;
-  const them = await S.get(UK(lower));
-  const fresh = await S.get(UK(me.lower)) || me;
+  const them = await getUser(lower);
+  const fresh = await getUser(me.lower) || me;
   fresh.requests = fresh.requests.filter(r => r.from !== lower);
   if (them) {
     NAMES[lower] = them.username;
@@ -820,7 +857,7 @@ async function acceptFriend(lower){
 }
 async function declineFriend(lower){
   busy = true;
-  const fresh = await S.get(UK(me.lower)) || me;
+  const fresh = await getUser(me.lower) || me;
   fresh.requests = fresh.requests.filter(r => r.from !== lower);
   await S.set(UK(me.lower), fresh);
   me = fresh; busy = false; renderFriends(); updateDots();
@@ -839,7 +876,7 @@ async function openProfile(lower, from){
 }
 async function renderProfile(){
   const lower = viewingProfile;
-  const u = lower === me.lower ? me : await S.get(UK(lower));
+  const u = lower === me.lower ? me : await getUser(lower);
   if (!u) { $('#profileBody').innerHTML = `<div class="card"><div class="empty">That player no longer exists.</div></div>`; return; }
   const mine = u.lower === me.lower;
   const played = u.wins + u.losses;
@@ -917,7 +954,7 @@ async function invite(lower){
     toast('Finish your current match first'); sfx('error'); go('games'); return;
   }
   busy = true;
-  const them = await S.get(UK(lower));
+  const them = await getUser(lower);
   if (!them) { busy = false; toast('That player could not be found'); sfx('error'); return; }
   NAMES[them.lower] = them.username;
   const id = me.lower + '-' + Date.now().toString(36);
@@ -934,8 +971,8 @@ async function invite(lower){
 }
 async function acceptInvite(id){
   busy = true;
-  const g = await S.get(GK(id));
-  const fresh = await S.get(UK(me.lower)) || me;
+  const g = await getGame(id);
+  const fresh = await getUser(me.lower) || me;
   fresh.invites = fresh.invites.filter(i => i.gameId !== id);
   await S.set(UK(me.lower), fresh); me = fresh;
   if (g) { g.status = 'active'; g.rev++; await S.set(GK(id), g); activeGame = g; lastStatus = 'active'; await S.set('pp:active', id, false); }
@@ -944,9 +981,9 @@ async function acceptInvite(id){
 }
 async function declineInvite(id){
   busy = true;
-  const g = await S.get(GK(id));
+  const g = await getGame(id);
   if (g) { g.status = 'declined'; g.rev++; await S.set(GK(id), g); }
-  const fresh = await S.get(UK(me.lower)) || me;
+  const fresh = await getUser(me.lower) || me;
   fresh.invites = fresh.invites.filter(i => i.gameId !== id);
   await S.set(UK(me.lower), fresh); me = fresh;
   busy = false; renderHome(); updateDots();
@@ -965,7 +1002,7 @@ function bump(side, delta){
   renderGame();
   return queue(async () => {
     busy = true;
-    const fresh = await S.get(GK(id));
+    const fresh = await getGame(id);
     if (fresh && fresh.status === 'active') {
       applyPoint(fresh, side, delta);
       await S.set(GK(id), fresh);
@@ -1080,7 +1117,7 @@ async function finishMatch(){
   if (!activeGame || activeGame.sa === activeGame.sb) return;
   await chain;
   busy = true;
-  const g = (await S.get(GK(activeGame.id))) || activeGame;
+  const g = (await getGame(activeGame.id)) || activeGame;
   if (g.status === 'active') { g.status = 'review'; g.rev++; await S.set(GK(g.id), g); }
   activeGame = g; lastStatus = g.status; busy = false;
   sfx('finish'); flyBall();
@@ -1113,7 +1150,7 @@ function renderFinished(g){
 async function reopenMatch(){
   if (!activeGame || activeGame.status !== 'review') return;
   busy = true;
-  const g = (await S.get(GK(activeGame.id))) || activeGame;
+  const g = (await getGame(activeGame.id)) || activeGame;
   if (g.status === 'review') { g.status = 'active'; g.rev++; await S.set(GK(g.id), g); }
   activeGame = g; lastStatus = g.status; busy = false;
   renderGame();
@@ -1126,7 +1163,7 @@ async function cancelGame(){
   const g = activeGame;
   g.status = 'declined'; g.rev++;
   await S.set(GK(g.id), g);
-  const them = await S.get(UK(oppOf(g).lower));
+  const them = await getUser(oppOf(g).lower);
   if (them) { them.invites = them.invites.filter(i => i.gameId !== g.id); await S.set(UK(them.lower), them); }
   activeGame = null; lastStatus = null;
   await S.set('pp:active', null, false);
@@ -1137,13 +1174,13 @@ async function logResult(){
   if (!activeGame || activeGame.sa === activeGame.sb) return;
   await chain;
   busy = true;
-  const g = (await S.get(GK(activeGame.id))) || activeGame;
+  const g = (await getGame(activeGame.id)) || activeGame;
   if (g.status === 'done' || g.sa === g.sb) { activeGame = g; busy = false; renderGame(); return; }
   const winnerIsA = g.sa > g.sb;
   const wLower = winnerIsA ? g.aLower : g.bLower;
   const lLower = winnerIsA ? g.bLower : g.aLower;
   const wScore = Math.max(g.sa, g.sb), lScore = Math.min(g.sa, g.sb);
-  const W = await S.get(UK(wLower)), L = await S.get(UK(lLower));
+  const W = await getUser(wLower), L = await getUser(lLower);
   const when = Date.now();
   if (W && L) {
     W.wins++; W.streak++; W.best = Math.max(W.best, W.streak);
