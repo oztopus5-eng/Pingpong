@@ -1,0 +1,1204 @@
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>PingPong — Play · Connect · Keep Score</title>
+<style>
+:root{
+  --sky-1:#f4faff;
+  --sky-2:#e0f0ff;
+  --sky-3:#c8e4fc;
+  --blue:#3d8fe0;
+  --blue-2:#2a78cf;
+  --blue-deep:#1a5aa8;
+  --navy:#15477e;
+  --ink:#1d4874;
+  --muted:#7ba3c9;
+  --pale:#e8f4ff;
+  --ring:#d3e8fb;
+  --white:#fff;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%}
+body{
+  background:linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 58%,var(--sky-3) 100%);
+  background-attachment:fixed;color:var(--ink);
+  font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",Quicksand,Nunito,"Trebuchet MS",system-ui,sans-serif;
+  font-size:16px;line-height:1.45;overflow-x:hidden;
+}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+input{font:inherit}
+.wrap{max-width:440px;margin:0 auto;padding:0 18px 118px;position:relative}
+.screen{display:none}
+.screen.on{display:block;animation:rise .3s ease both}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+
+/* ---------- brand + header ---------- */
+.mark{font-weight:800;letter-spacing:-1.2px;color:var(--blue-deep)}
+.mark .lo{color:var(--blue)}
+.apphead{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:9px;
+  padding:16px 0 12px;background:linear-gradient(180deg,var(--sky-1) 68%,rgba(244,250,255,0))}
+.apphead .logo{width:30px;height:30px;flex:none}
+.apphead .mark{font-size:21px}
+.apphead .back{margin-left:-8px;padding:4px 10px;color:var(--blue-deep);font-size:26px;line-height:1;font-weight:700}
+.apphead .ttl{flex:1;text-align:center;font-weight:800;font-size:19px;color:var(--navy)}
+.apphead .spacer{width:38px;flex:none}
+
+/* ---------- cards ---------- */
+.card{background:var(--white);border-radius:22px;padding:18px;margin-bottom:14px;
+  box-shadow:0 14px 30px -22px rgba(21,71,126,.75)}
+.card.tap{cursor:pointer;transition:transform .12s ease}
+.card.tap:active{transform:scale(.985)}
+h3.sec{font-size:15px;font-weight:800;color:var(--navy);margin:20px 4px 10px}
+.row{display:flex;align-items:center;gap:12px}
+.grow{flex:1;min-width:0}
+.trunc{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dim{color:var(--muted);font-size:13.5px;font-weight:600}
+.name{font-weight:800;color:var(--navy)}
+
+/* ---------- buttons ---------- */
+.btn{background:linear-gradient(180deg,#4c98e4,#2a78cf);color:#fff;border-radius:15px;
+  padding:15px 18px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  box-shadow:0 10px 20px -12px rgba(42,120,207,1);transition:transform .09s ease}
+.btn:active{transform:scale(.94)}
+.btn.block{display:flex;width:100%}
+.btn.ghost{background:var(--pale);color:var(--blue-deep);box-shadow:none}
+.btn.quiet{background:none;color:var(--muted);box-shadow:none;font-weight:700}
+.btn[disabled]{opacity:.42;pointer-events:none}
+.chip{background:var(--pale);color:var(--blue-2);border-radius:12px;padding:8px 17px;font-size:14px;
+  font-weight:800;transition:transform .09s ease}
+.chip:active{transform:scale(.93)}
+.chip.on{background:linear-gradient(180deg,#4c98e4,#2a78cf);color:#fff}
+.chip.done{background:#ddf3e6;color:#1d7c46}
+
+/* ---------- avatars & pills ---------- */
+.av{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;
+  flex:none;font-size:18px;border:2.5px solid #fff;box-shadow:0 4px 10px -4px rgba(21,71,126,.6)}
+.av.sm{width:36px;height:36px;font-size:15px;border-width:2px}
+.av.lg{width:92px;height:92px;font-size:38px;border-width:5px;margin:0 auto}
+.pill{display:inline-flex;align-items:center;gap:5px;background:var(--pale);color:var(--blue-2);
+  border-radius:999px;padding:5px 12px;font-size:13px;font-weight:800}
+.pill.fire{background:linear-gradient(135deg,#ffcf5c,#ff7a2f);color:#fff}
+.pill.w{background:#ddf3e6;color:#1d7c46}
+.pill.l{background:#fde6e6;color:#b03e3e}
+
+/* ---------- inputs ---------- */
+.ifield{display:flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--ring);
+  border-radius:15px;padding:0 14px;transition:border-color .15s}
+.ifield:focus-within{border-color:var(--blue)}
+.ifield svg{flex:none;color:var(--blue)}
+.ifield input{border:0;outline:0;background:none;padding:15px 0;width:100%;font-weight:700;color:var(--ink)}
+.ifield input::placeholder{color:#a8c6e2;font-weight:600}
+.err{color:#c0392b;font-weight:700;font-size:13.5px;min-height:20px;text-align:center;margin-top:8px}
+.empty{text-align:center;color:var(--muted);font-weight:600;padding:22px 12px;font-size:14px}
+
+/* ---------- rows ---------- */
+.lrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #eaf3fb}
+.lrow:first-child{border-top:0}
+.lrow.sel{background:linear-gradient(90deg,rgba(232,244,255,.9),rgba(232,244,255,.3));
+  border-radius:14px;padding-left:8px;padding-right:8px;margin:2px -8px;border-top-color:transparent}
+.res{font-weight:800;font-variant-numeric:tabular-nums;font-size:14px}
+.res.w{color:#1d7c46}.res.l{color:#b03e3e}
+
+/* ---------- stats ---------- */
+.stats{display:flex;gap:10px;margin-top:16px}
+.stat{flex:1;background:var(--pale);border-radius:16px;padding:13px 6px;text-align:center}
+.stat b{display:block;font-size:24px;color:var(--navy);letter-spacing:-.6px;line-height:1.15}
+.stat span{font-size:12.5px;color:var(--muted);font-weight:700}
+
+/* ---------- match ---------- */
+.scorebar{display:flex;align-items:flex-start;gap:10px;margin:26px 0 14px}
+.scorecard{flex:1;background:#fff;border-radius:20px;padding:0 8px 14px;text-align:center;position:relative;
+  box-shadow:0 12px 26px -20px rgba(21,71,126,.9);transition:transform .09s ease}
+.scorecard:active{transform:scale(.95)}
+.scorecard .av{margin:-24px auto 5px}
+.scorecard .who{font-size:12.5px;font-weight:800;color:var(--muted);margin-bottom:2px}
+.scorecard b{display:block;font-size:clamp(38px,13vw,50px);line-height:1;color:var(--navy);
+  letter-spacing:-2.5px;font-variant-numeric:tabular-nums}
+.scorecard .minus{position:absolute;left:7px;bottom:7px;width:27px;height:27px;border-radius:50%;
+  background:var(--pale);color:var(--blue-2);font-weight:800;font-size:17px;display:grid;place-items:center}
+.vs{font-weight:800;color:var(--blue-2);font-size:15px;padding-top:26px}
+.tablecard{background:linear-gradient(180deg,#dcefff,#bcdefa);border-radius:22px;padding:8px 6px 2px;
+  margin-bottom:14px;box-shadow:0 14px 28px -22px rgba(21,71,126,.9)}
+.tablecard .hint{text-align:center;font-weight:800;font-size:13px;color:var(--blue-deep);padding:4px 0 2px}
+.tablecard svg{width:100%;display:block}
+
+/* ---------- finished ---------- */
+.center{text-align:center}
+.trophy{width:96px;height:96px;display:block;margin:2px auto 8px}
+.finalscore{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px 0 18px}
+.finalscore b{font-size:38px;letter-spacing:-2px;color:var(--navy);font-variant-numeric:tabular-nums}
+.finalscore span{font-weight:800;color:var(--muted);font-size:14px;max-width:88px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+/* ---------- streak ---------- */
+#fire{position:fixed;inset:0;z-index:90;display:none;place-items:center;padding:26px;text-align:center;
+  background:radial-gradient(circle at 50% 44%,#fff 0%,#eaf6ff 44%,rgba(150,200,240,.95) 100%);
+  opacity:0;transition:opacity .4s ease}
+#fire.on{display:grid}
+#fire.vis{opacity:1}
+.rays{position:absolute;width:340px;height:340px;left:50%;top:50%;margin:-170px 0 0 -170px;
+  background:repeating-conic-gradient(from 0deg,rgba(255,186,84,.55) 0deg 3.5deg,rgba(255,255,255,0) 3.5deg 15deg);
+  border-radius:50%;-webkit-mask-image:radial-gradient(circle,transparent 27%,#000 43%,transparent 72%);
+  mask-image:radial-gradient(circle,transparent 27%,#000 43%,transparent 72%);animation:spin 24s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dashes{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;
+  animation:spin 30s linear infinite reverse}
+#fire .inner{position:relative}
+.flame{width:165px;height:194px;display:block;margin:0 auto;
+  filter:drop-shadow(0 14px 22px rgba(255,122,41,.42));animation:breathe 1.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
+#fire h2{margin:6px 0 4px;font-size:29px;color:var(--navy);letter-spacing:-.8px}
+#fire p{margin:0;color:var(--blue-2);font-weight:700}
+.streakline{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:13.5px;color:#e8721b}
+
+/* ---------- nav ---------- */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;display:none;
+  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-top:1px solid #e2eefa;
+  padding:9px 0 max(10px,env(safe-area-inset-bottom))}
+nav.tabs.on{display:flex}
+nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;
+  font-size:11px;font-weight:800;color:#a8c6e2;position:relative}
+.tab.on{color:var(--blue-2)}
+.tab .dot{position:absolute;top:0;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;
+  background:#ff5a5a;border:2px solid #fff;display:none}
+.tab .dot.on{display:block}
+
+/* ---------- motion bits ---------- */
+.spark{position:fixed;width:3px;height:14px;border-radius:3px;background:#fff;pointer-events:none;z-index:999;
+  box-shadow:0 0 8px rgba(255,255,255,.95)}
+.spark.pale{background:#dcefff;box-shadow:0 0 8px rgba(190,222,250,.95)}
+.flyball{position:fixed;width:26px;height:26px;border-radius:50%;pointer-events:none;z-index:88;
+  background:radial-gradient(circle at 34% 30%,#fff,#e2eefb);box-shadow:0 0 22px rgba(255,255,255,.95)}
+.flyball:after{content:"";position:absolute;right:18px;top:9px;width:74px;height:8px;border-radius:8px;
+  background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.85));filter:blur(1.5px)}
+#netbanner{position:fixed;left:0;right:0;top:0;z-index:95;background:#fdf0d5;color:#8a5b12;
+  font-weight:800;font-size:13px;text-align:center;padding:9px 16px;transform:translateY(-100%);
+  transition:transform .3s ease;box-shadow:0 6px 16px -10px rgba(21,71,126,.5)}
+#netbanner.on{transform:none}
+#demonote{background:#fdf0d5;color:#8a5b12;border-radius:14px;padding:11px 14px;font-size:13px;
+  font-weight:700;margin-bottom:14px;display:none}
+#demonote.on{display:block}
+#toast{position:fixed;left:50%;bottom:88px;transform:translate(-50%,14px);z-index:80;opacity:0;
+  background:rgba(21,71,126,.94);color:#fff;font-weight:800;font-size:14px;padding:11px 20px;border-radius:999px;
+  transition:opacity .25s ease,transform .25s ease;pointer-events:none;max-width:86vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+.deco{position:absolute;border-radius:50%;background:radial-gradient(circle at 34% 30%,#fff,#dfeefc);
+  opacity:.85;box-shadow:0 6px 14px rgba(21,71,126,.14);pointer-events:none}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+</style>
+
+<!-- ================= reusable art ================= -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="g-icon" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8e5fc"/><stop offset="1" stop-color="#93caf3"/></linearGradient>
+  <linearGradient id="g-blade-b" x1=".15" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#61a8ea"/><stop offset="1" stop-color="#2b70c4"/></linearGradient>
+  <linearGradient id="g-blade-r" x1=".15" y1="0" x2=".9" y2="1"><stop offset="0" stop-color="#f5807a"/><stop offset="1" stop-color="#d8404c"/></linearGradient>
+  <linearGradient id="g-wood" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f4d09a"/><stop offset="1" stop-color="#d59b54"/></linearGradient>
+  <radialGradient id="g-ball" cx=".34" cy=".28" r=".85"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#dceaf6"/></radialGradient>
+  <linearGradient id="g-felt" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#56a2e8"/><stop offset="1" stop-color="#2a74c8"/></linearGradient>
+  <linearGradient id="g-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe07d"/><stop offset="1" stop-color="#eda412"/></linearGradient>
+  <linearGradient id="g-flame" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffb339"/><stop offset=".5" stop-color="#ff7a2f"/><stop offset="1" stop-color="#f4511e"/></linearGradient>
+  <linearGradient id="g-flame2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd873"/><stop offset="1" stop-color="#ff9330"/></linearGradient>
+  <pattern id="p-mesh" width="8" height="8" patternUnits="userSpaceOnUse">
+    <path d="M0 0h8M0 0v8" stroke="#fff" stroke-width="1.1" opacity=".8"/></pattern>
+
+  <!-- app logo: two paddles crossed behind a ball -->
+  <symbol id="logo" viewBox="0 0 120 120">
+    <rect width="120" height="120" rx="29" fill="url(#g-icon)"/>
+    <ellipse cx="60" cy="98" rx="34" ry="7" fill="#5ea6e4" opacity=".35"/>
+    <g transform="rotate(24 72 56)">
+      <rect x="66" y="76" width="13" height="32" rx="6.5" fill="url(#g-wood)"/>
+      <ellipse cx="72" cy="54" rx="26" ry="29" fill="#b32f3d"/>
+      <ellipse cx="72" cy="52" rx="24" ry="27" fill="url(#g-blade-r)"/>
+      <ellipse cx="64" cy="42" rx="9" ry="11" fill="#fff" opacity=".16"/>
+    </g>
+    <g transform="rotate(-24 48 56)">
+      <rect x="41" y="76" width="13" height="32" rx="6.5" fill="url(#g-wood)"/>
+      <ellipse cx="48" cy="54" rx="27" ry="30" fill="#1d569f"/>
+      <ellipse cx="48" cy="52" rx="25" ry="28" fill="url(#g-blade-b)"/>
+      <ellipse cx="40" cy="41" rx="9" ry="11" fill="#fff" opacity=".2"/>
+    </g>
+    <circle cx="60" cy="79" r="14" fill="url(#g-ball)"/>
+    <g stroke="#fff" stroke-width="4.5" stroke-linecap="round" opacity=".92">
+      <path d="M18 78l7-3"/><path d="M16 90h9"/><path d="M21 101l8-4"/>
+      <path d="M102 78l-7-3"/><path d="M104 90h-9"/><path d="M99 101l-8-4"/>
+    </g>
+  </symbol>
+
+  <!-- ping pong table in perspective -->
+  <symbol id="table" viewBox="0 0 320 200">
+    <g fill="#1d5590">
+      <rect x="66" y="128" width="9" height="42" rx="4.5"/>
+      <rect x="245" y="128" width="9" height="42" rx="4.5"/>
+      <rect x="28" y="136" width="10" height="50" rx="5"/>
+      <rect x="282" y="136" width="10" height="50" rx="5"/>
+      <rect x="34" y="158" width="252" height="8" rx="4" opacity=".5"/>
+    </g>
+    <polygon points="70,40 250,40 300,140 20,140" fill="url(#g-felt)" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>
+    <line x1="160" y1="43" x2="160" y2="137" stroke="#fff" stroke-width="3" opacity=".8"/>
+    <rect x="44" y="66" width="232" height="24" fill="#fff" opacity=".22"/>
+    <rect x="44" y="66" width="232" height="24" fill="url(#p-mesh)" opacity=".55"/>
+    <rect x="42" y="61" width="236" height="5.5" rx="2.7" fill="#fff"/>
+    <rect x="38" y="61" width="7" height="32" rx="3.5" fill="#1d5590"/>
+    <rect x="275" y="61" width="7" height="32" rx="3.5" fill="#1d5590"/>
+  </symbol>
+
+  <!-- trophy -->
+  <symbol id="trophy" viewBox="0 0 100 100">
+    <path d="M30 20h6c0 14 4 20 9 22" fill="none" stroke="url(#g-gold)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M70 20h-6c0 14-4 20-9 22" fill="none" stroke="url(#g-gold)" stroke-width="7" stroke-linecap="round"/>
+    <path d="M28 14h44v22c0 13-9.8 23-22 23S28 49 28 36z" fill="url(#g-gold)"/>
+    <path d="M36 20h12v14c0 4-2 7-5 8" fill="#fff" opacity=".3"/>
+    <rect x="44" y="58" width="12" height="12" rx="3" fill="#e59a10"/>
+    <rect x="31" y="69" width="38" height="9" rx="4.5" fill="url(#g-gold)"/>
+    <rect x="24" y="78" width="52" height="11" rx="5.5" fill="#e59a10"/>
+  </symbol>
+
+  <!-- flame -->
+  <symbol id="flame" viewBox="0 0 100 120">
+    <path fill="url(#g-flame)" d="M52 2c7 19 20 27 27 40 6 12 9 22 9 33 0 25-18 43-38 43S12 100 12 75c0-15 6-26 14-35 3 6 6 10 10 12-3-17 9-36 16-50z"/>
+    <path fill="url(#g-flame2)" opacity=".92" d="M53 40c5 11 14 18 14 32 0 15-9 25-20 25s-20-10-20-25c0-10 5-17 11-23 1 5 3 7 6 9-1-7 5-13 9-18z"/>
+  </symbol>
+</defs></svg>
+
+<!-- ================= STREAK ================= -->
+<div id="fire" onclick="closeFire()">
+  <div class="rays"></div>
+  <svg class="dashes" viewBox="0 0 300 300" fill="none" stroke="#9ccdf3" stroke-width="5" stroke-linecap="round" opacity=".65">
+    <path d="M150 6v22M150 272v22M6 150h22M272 150h22M48 48l16 16M236 236l16 16M252 48l-16 16M64 236l-16 16"/>
+  </svg>
+  <div class="inner">
+    <div style="position:relative">
+      <svg class="flame"><use href="#flame"/></svg>
+      <div id="firenum" style="position:absolute;left:0;right:0;top:45%;line-height:1;font-size:46px;font-weight:800;color:#fff;
+        text-shadow:0 3px 10px rgba(190,60,0,.4);letter-spacing:-2px">3</div>
+    </div>
+    <h2 id="firetitle">3 Win Streak!</h2>
+    <p id="firesub">You've won 3 games in a row!</p>
+    <button class="btn" style="margin-top:20px;padding:14px 34px" onclick="event.stopPropagation();closeFire()">Keep it going</button>
+  </div>
+</div>
+
+<div id="netbanner">Can't reach the database — changes aren't saving right now.</div>
+<div id="toast"></div>
+
+<div class="wrap">
+
+<!-- ================= CREATE ACCOUNT ================= -->
+<section class="screen" id="s-auth">
+  <div style="height:30px"></div>
+  <div class="card center" style="padding:26px 20px 24px;position:relative;overflow:hidden">
+    <svg style="width:92px;height:92px"><use href="#logo"/></svg>
+    <h2 style="margin:14px 0 4px;font-size:25px;color:var(--navy);letter-spacing:-.6px">Create Your Account</h2>
+    <p class="dim" style="margin:0 0 20px">Choose a unique username to get started.</p>
+    <div class="ifield">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>
+      <input id="nameIn" maxlength="16" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Your username">
+    </div>
+    <div class="err" id="authErr"></div>
+    <button class="btn block" onclick="createAccount()">Create Account</button>
+    <p class="dim" style="margin:14px 0 0;font-size:12.5px">Usernames must be unique.</p>
+    <div class="deco" style="width:26px;height:26px;left:12px;bottom:14px"></div>
+    <div class="deco" style="width:15px;height:15px;left:46px;bottom:-4px;opacity:.6"></div>
+    <div class="deco" style="width:34px;height:34px;right:-8px;bottom:6px;opacity:.5"></div>
+  </div>
+</section>
+
+<!-- ================= HOME ================= -->
+<section class="screen" id="s-home">
+  <div class="apphead">
+    <svg class="logo"><use href="#logo"/></svg>
+    <div class="mark">Ping<span class="lo">Pong</span></div>
+  </div>
+  <div id="homeBody"></div>
+</section>
+
+<!-- ================= FRIENDS ================= -->
+<section class="screen" id="s-friends">
+  <div class="apphead"><div class="spacer"></div><div class="ttl">Add Friends</div><div class="spacer"></div></div>
+  <div class="ifield" style="margin-bottom:14px">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+    <input id="searchIn" placeholder="Search by username" autocomplete="off" autocapitalize="off" spellcheck="false">
+  </div>
+  <div id="friendsBody"></div>
+</section>
+
+<!-- ================= GAMES ================= -->
+<section class="screen" id="s-game">
+  <div class="apphead">
+    <button class="back" id="gameBack" onclick="go('home')" style="visibility:hidden">‹</button>
+    <div class="ttl" id="gameTitle">Invite to Play</div><div class="spacer"></div>
+  </div>
+  <div id="gameBody"></div>
+</section>
+
+<!-- ================= PROFILE ================= -->
+<section class="screen" id="s-profile">
+  <div class="apphead">
+    <button class="back" id="profBack" onclick="back()">‹</button>
+    <div class="ttl">Profile</div><div class="spacer"></div>
+  </div>
+  <div id="profileBody"></div>
+</section>
+
+</div>
+
+<nav class="tabs" id="tabs"><div class="inner">
+  <button class="tab" data-tab="home" onclick="go('home')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"><path d="M4 11l8-6.5 8 6.5V19a1 1 0 01-1 1h-4v-5h-6v5H5a1 1 0 01-1-1z"/></svg>Home</button>
+  <button class="tab" data-tab="friends" onclick="go('friends')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="9" cy="8" r="3.3"/><path d="M3 19c0-3.2 2.7-5 6-5s6 1.8 6 5"/><path d="M16.5 5.6a3 3 0 010 5.6M18.5 19c0-2.2-.7-3.6-2-4.6"/></svg>Friends<span class="dot" id="fdot"></span></button>
+  <button class="tab" data-tab="games" onclick="go('games')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><ellipse cx="10" cy="9.4" rx="5.4" ry="6.1"/><path d="M11.6 15.4l2.6 4.8"/><circle cx="17.6" cy="14.6" r="2.5"/></svg>Games<span class="dot" id="gdot"></span></button>
+  <button class="tab" data-tab="profile" onclick="go('profile')">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>Profile</button>
+</div></nav>
+
+<script>
+/* ================= backend =================
+   To run this on the open web (GitHub Pages, Netlify, anywhere), paste your
+   Firebase Realtime Database URL below. Leave it empty and the app uses
+   Claude's built-in artifact storage instead.
+
+   Setup, about two minutes:
+     1. console.firebase.google.com -> Add project (skip Analytics)
+     2. Build -> Realtime Database -> Create Database -> Start in test mode
+     3. Copy the URL at the top of the Data tab, e.g.
+        https://pingpong-1234-default-rtdb.firebaseio.com
+     4. Paste it between the quotes below
+     5. Rules tab -> paste this, then Publish:
+        {
+          "rules": {
+            "pp": {
+              "u": { ".read": true, "$user": { ".write": true } },
+              "g": { ".read": true, "$game": { ".write": true } }
+            }
+          }
+        }
+   Those rules let anyone with the link read and write the ping pong data and
+   nothing else in the project. Fine for a group of friends; add Firebase Auth
+   if you ever want it locked down properly.                                  */
+const FIREBASE_DB_URL = "";
+
+/* ================= storage ================= */
+const MEM = {};
+const artifactStore = (typeof window.storage !== 'undefined' && window.storage) ? window.storage : null;
+
+let lsOk = true;
+try { localStorage.setItem('pp:t','1'); localStorage.removeItem('pp:t'); } catch (e) { lsOk = false; }
+function localGet(k){ if(!lsOk) return undefined; try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e){ return null; } }
+function localSet(k, v){ if(!lsOk) return false; try { v === null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); return true; } catch(e){ return false; } }
+
+const useFB = !!FIREBASE_DB_URL;
+const backend = useFB ? 'firebase' : (artifactStore ? 'artifact' : 'memory');
+const fbRoot = FIREBASE_DB_URL.replace(/\/+$/, '');
+const fbPath = k => fbRoot + '/' + k.split(':').join('/') + '.json';
+
+let netBad = false;
+function flagNet(bad){
+  if (bad === netBad) return;
+  netBad = bad;
+  const el = document.getElementById('netbanner');
+  if (el) el.classList.toggle('on', bad);
+}
+async function fbGet(k){
+  const r = await fetch(fbPath(k) + '?t=' + Date.now());
+  if (!r.ok) throw new Error('read ' + r.status);
+  return await r.json();
+}
+async function fbSet(k, v){
+  const r = await fetch(fbPath(k), { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(v) });
+  if (!r.ok) throw new Error('write ' + r.status);
+}
+async function fbList(prefix){
+  const base = fbRoot + '/' + prefix.replace(/:+$/, '').split(':').join('/') + '.json?shallow=true&t=' + Date.now();
+  const r = await fetch(base);
+  if (!r.ok) throw new Error('list ' + r.status);
+  const j = await r.json();
+  return j ? Object.keys(j).map(x => prefix + x) : [];
+}
+
+const S = {
+  async get(k, shared = true){
+    if (shared && useFB) {
+      try { const v = await fbGet(k); flagNet(false); return v; } catch(e){ flagNet(true); return null; }
+    }
+    if (!shared) { const v = localGet(k); if (v !== undefined) return v; }
+    if (artifactStore) { try { const r = await artifactStore.get(k, shared); return r ? JSON.parse(r.value) : null; } catch(e){ return null; } }
+    return MEM[k] ? JSON.parse(MEM[k]) : null;
+  },
+  async set(k, v, shared = true){
+    if (shared && useFB) {
+      try { await fbSet(k, v); flagNet(false); return true; } catch(e){ flagNet(true); return false; }
+    }
+    if (!shared && localSet(k, v)) return true;
+    if (artifactStore) { try { await artifactStore.set(k, JSON.stringify(v), shared); return true; } catch(e){ return false; } }
+    MEM[k] = JSON.stringify(v); return true;
+  },
+  async list(prefix, shared = true){
+    if (shared && useFB) {
+      try { const r = await fbList(prefix); flagNet(false); return r; } catch(e){ flagNet(true); return []; }
+    }
+    if (artifactStore) { try { const r = await artifactStore.list(prefix, shared); return (r && r.keys) || []; } catch(e){ return []; } }
+    return Object.keys(MEM).filter(k => k.startsWith(prefix));
+  }
+};
+const UK = l => 'pp:u:' + l;
+const GK = i => 'pp:g:' + i;
+
+/* ================= sound ================= */
+let soundOn = true, AC = null, noiseBuf = null;
+function ac(){ if(!AC){ try{ AC = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } if(AC && AC.state==='suspended') AC.resume(); return AC; }
+function noise(){
+  const c = ac(); if(!c) return null;
+  if(!noiseBuf){ noiseBuf = c.createBuffer(1, 2048, c.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for(let i=0;i<2048;i++) d[i] = (Math.random()*2-1) * (1 - i/2048);
+  }
+  return noiseBuf;
+}
+function ping(freq, vol, at, type){
+  const c = ac(); if(!c) return;
+  const t = c.currentTime + (at||0);
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type || 'triangle';
+  o.frequency.setValueAtTime(freq, t);
+  o.frequency.exponentialRampToValueAtTime(freq*.48, t+.07);
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(.0008, t+.11);
+  o.connect(g).connect(c.destination); o.start(t); o.stop(t+.13);
+  const b = noise();
+  if(b){ const s = c.createBufferSource(); s.buffer = b;
+    const bp = c.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value = freq*1.7; bp.Q.value = 1.1;
+    const ng = c.createGain(); ng.gain.setValueAtTime(vol*.75, t); ng.gain.exponentialRampToValueAtTime(.0008, t+.045);
+    s.connect(bp).connect(ng).connect(c.destination); s.start(t);
+  }
+}
+/* distinct voices: soft tap, sharper score ping, celebratory volley, streak fanfare */
+function sfx(kind){
+  if (!soundOn) return;
+  if (kind === 'tap')        ping(820, .15);
+  else if (kind === 'score') ping(1250, .26);
+  else if (kind === 'undo')  ping(520, .14);
+  else if (kind === 'error') ping(300, .16, 0, 'sine');
+  else if (kind === 'sent')  { ping(760, .18); ping(1010, .18, .085); }
+  else if (kind === 'finish'){ [660,830,990,1240].forEach((f,i) => ping(f, .22, i*.085)); }
+  else if (kind === 'streak'){ [660,830,990,1240,1480,1760].forEach((f,i) => ping(f, .24, i*.075));
+                               ping(1980, .18, .52); ping(2640, .14, .6); }
+}
+
+/* ================= press feedback ================= */
+function reduced(){
+  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion:reduce)').matches; }
+  catch (e) { return false; }
+}
+function sparks(x, y){
+  if (reduced()) return;
+  const n = 12;
+  for (let i = 0; i < n; i++) {
+    const a = (Math.PI*2) * (i/n) + Math.random()*.4;
+    const dist = 32 + Math.random()*48;
+    const el = document.createElement('div');
+    el.className = 'spark' + (i % 3 === 0 ? ' pale' : '');
+    el.style.left = x + 'px'; el.style.top = y + 'px';
+    document.body.appendChild(el);
+    const anim = el.animate([
+      { transform:`translate(-50%,-50%) rotate(${a}rad) translateY(-2px) scaleY(.45)`, opacity:1 },
+      { transform:`translate(-50%,-50%) rotate(${a}rad) translateY(${-dist}px) scaleY(1.6)`, opacity:0 }
+    ], { duration: 210 + Math.random()*120, easing:'cubic-bezier(.2,.75,.3,1)' });
+    anim.onfinish = () => el.remove();
+  }
+}
+document.addEventListener('pointerdown', e => {
+  const b = e.target.closest('.btn,.chip,.tab,.scorecard,.card.tap,.minus');
+  if (!b || b.hasAttribute('disabled')) return;
+  sparks(e.clientX, e.clientY);
+  if (b.classList.contains('minus')) sfx('undo');
+  else if (b.classList.contains('scorecard')) sfx('score');
+  else sfx('tap');
+}, true);
+
+/* a ball streaking across, used for match start and celebrations */
+function flyBall(dur){
+  if (reduced() || !document.body.animate) return;
+  const el = document.createElement('div');
+  el.className = 'flyball';
+  const y = window.innerHeight * (.32 + Math.random()*.2);
+  el.style.top = y + 'px'; el.style.left = '-60px';
+  document.body.appendChild(el);
+  const a = el.animate([
+    { transform:'translateX(0) translateY(0)', opacity:0 },
+    { transform:`translateX(${window.innerWidth*.35}px) translateY(-26px)`, opacity:1, offset:.35 },
+    { transform:`translateX(${window.innerWidth+90}px) translateY(18px)`, opacity:0 }
+  ], { duration: dur || 620, easing:'cubic-bezier(.3,.1,.4,1)' });
+  a.onfinish = () => el.remove();
+}
+
+/* ================= toast ================= */
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('on');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('on'), 1900);
+}
+
+/* ================= helpers ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const HUES = ['#3d8fe0','#2a78cf','#1a5aa8','#5aa6ea','#2f86b8','#4f7fd6','#1f8fb0'];
+function tint(n){ let h=0; for(let i=0;i<n.length;i++) h=(h*31+n.charCodeAt(i))>>>0; return HUES[h%HUES.length]; }
+function av(name, cls){ return `<div class="av ${cls||''}" style="background:${tint(name)}">${esc(name[0].toUpperCase())}</div>`; }
+function ago(ts){
+  const d = (Date.now()-ts)/1000;
+  if(d<60) return 'just now';
+  if(d<3600) return Math.floor(d/60)+'m ago';
+  if(d<86400) return Math.floor(d/3600)+'h ago';
+  if(d<604800) return Math.floor(d/86400)+'d ago';
+  return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+function blankUser(name){
+  return { username:name, lower:name.toLowerCase(), created:Date.now(),
+    wins:0, losses:0, streak:0, best:0, friends:[], requests:[], invites:[], matches:[] };
+}
+function rate(u){ const p = u.wins + u.losses; return p ? Math.round(u.wins/p*100) : 0; }
+
+/* ================= state ================= */
+const NAMES = {};
+const nameOf = l => NAMES[l] || l;
+async function fillNames(){
+  if (!me) return;
+  const miss = me.friends.filter(f => !NAMES[f]);
+  if (!miss.length) return;
+  for (const f of miss) { const u = await S.get(UK(f)); NAMES[f] = u ? u.username : f; }
+  if (view === 'home') renderHome();
+  else if (view === 'friends') renderFriends();
+  else if (view === 'games') renderGame();
+}
+let me = null, activeGame = null, view = 'home', prevView = 'home', viewingProfile = null;
+let seenMatches = 0, poller = null, busy = false, searchResults = null, inviteSel = null, lastStatus = null;
+
+/* ================= boot ================= */
+(async function boot(){
+  const pref = await S.get('pp:sound', false);
+  if (pref && pref.off) soundOn = false;
+  const sess = await S.get('pp:session', false);
+  if (sess && sess.lower) { const u = await S.get(UK(sess.lower)); if (u) me = u; }
+  if (me) {
+    const aid = await S.get('pp:active', false);
+    if (aid) { const g = await S.get(GK(aid)); if (g && g.status !== 'done' && g.status !== 'declined') activeGame = g; }
+    seenMatches = me.matches.length;
+    await enter();
+  } else {
+    if (backend === 'memory') document.getElementById('demonote').classList.add('on');
+    show('s-auth');
+    setTimeout(() => $('#nameIn').focus(), 120);
+  }
+})();
+
+function show(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0,0);
+}
+async function enter(){
+  $('#tabs').classList.add('on');
+  await refreshMe();
+  lastStatus = activeGame ? activeGame.status : null;
+  if (activeGame && activeGame.status !== 'done' && activeGame.status !== 'declined') go('games'); else go('home');
+  if (!poller) poller = setInterval(tick, 3000);
+}
+
+/* ================= account ================= */
+async function createAccount(){
+  const raw = $('#nameIn').value.trim();
+  const err = $('#authErr');
+  if (!/^[A-Za-z0-9_]{2,16}$/.test(raw)) { err.textContent = 'Use 2–16 letters, numbers or underscores.'; sfx('error'); return; }
+  err.textContent = 'Checking…';
+  const lower = raw.toLowerCase();
+  if (await S.get(UK(lower))) { err.textContent = 'That username is already taken. Try another one.'; sfx('error'); return; }
+  me = blankUser(raw);
+  if (!await S.set(UK(lower), me)) { err.textContent = 'Could not save that. Check your connection and try again.'; me = null; return; }
+  await S.set('pp:session', { lower }, false);
+  err.textContent = ''; seenMatches = 0;
+  sfx('finish'); flyBall();
+  await enter();
+}
+async function signOut(){
+  await S.set('pp:session', null, false);
+  await S.set('pp:active', null, false);
+  me = null; activeGame = null;
+  clearInterval(poller); poller = null;
+  $('#tabs').classList.remove('on');
+  $('#nameIn').value = '';
+  show('s-auth');
+}
+async function toggleSound(){
+  soundOn = !soundOn;
+  await S.set('pp:sound', { off: !soundOn }, false);
+  if (soundOn) sfx('tap');
+  renderProfile();
+  toast(soundOn ? 'Sounds on' : 'Sounds off');
+}
+
+/* ================= sync ================= */
+async function refreshMe(){
+  if (!me) return;
+  const u = await S.get(UK(me.lower));
+  if (u) me = u;
+  if (activeGame) { const g = await S.get(GK(activeGame.id)); if (g) activeGame = g; }
+}
+async function tick(){
+  if (busy || !me) return;
+  await refreshMe();
+  if (activeGame && activeGame.status !== lastStatus) {
+    if (activeGame.status === 'active' && lastStatus === 'pending') { flyBall(); sfx('sent'); }
+    lastStatus = activeGame.status;
+  }
+  if (me.matches.length > seenMatches) {
+    const last = me.matches[0];
+    seenMatches = me.matches.length;
+    if (last && last.won && me.streak >= 3) showFire(me.streak);
+  }
+  if (view === 'home') renderHome();
+  else if (view === 'friends') renderFriends();
+  else if (view === 'games') renderGame();
+  updateDots();
+}
+function updateDots(){
+  if (!me) return;
+  $('#fdot').classList.toggle('on', me.requests.length > 0);
+  $('#gdot').classList.toggle('on', me.invites.length > 0);
+}
+
+/* ================= nav ================= */
+function go(v){
+  view = v;
+  if (v === 'profile') { viewingProfile = me.lower; prevView = 'home'; $('#profBack').style.visibility = 'hidden'; renderProfile(); show('s-profile'); }
+  else if (v === 'games') { renderGame(); show('s-game'); }
+  else if (v === 'friends') { renderFriends(); show('s-friends'); }
+  else { view = 'home'; renderHome(); show('s-home'); }
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === view));
+  updateDots();
+}
+function back(){ go(prevView === 'friends' ? 'friends' : prevView === 'games' ? 'games' : 'home'); }
+
+/* ================= HOME ================= */
+function renderHome(){
+  let h = `<div class="card tap" onclick="go('profile')" style="padding:14px 16px">
+    <div class="row">${av(me.username)}
+      <div class="grow trunc">
+        <div class="name trunc" style="font-size:17px">${esc(me.username)}</div>
+        ${me.streak >= 3
+          ? `<div class="streakline">Win Streak: ${me.streak} 🔥</div>`
+          : `<div class="dim">${me.wins}W · ${me.losses}L · ${rate(me)}% win rate</div>`}
+      </div>
+      <div style="color:#bcd8f0;font-size:22px">›</div>
+    </div></div>
+
+    <button class="btn block" style="margin-bottom:10px" onclick="go('games')">Play Now</button>
+    <button class="btn block ghost" onclick="go('friends')">Add Friends</button>`;
+
+  if (me.invites.length) {
+    h += `<h3 class="sec">Match invites</h3>`;
+    me.invites.forEach(inv => {
+      h += `<div class="card"><div class="row">${av(inv.fromName)}
+        <div class="grow trunc"><div class="name trunc">${esc(inv.fromName)}</div><div class="dim">wants to play · ${ago(inv.at)}</div></div></div>
+        <div class="row" style="margin-top:12px;gap:8px">
+          <button class="btn grow" onclick="acceptInvite('${esc(inv.gameId)}')">Accept</button>
+          <button class="btn ghost" onclick="declineInvite('${esc(inv.gameId)}')">Decline</button>
+        </div></div>`;
+    });
+  }
+
+  if (activeGame && ['pending','active','review'].includes(activeGame.status)) {
+    const opp = oppOf(activeGame);
+    const label = activeGame.status === 'pending' ? 'Waiting for ' + esc(opp.name)
+      : activeGame.status === 'review' ? 'Score waiting to be logged'
+      : 'Match with ' + esc(opp.name);
+    h += `<h3 class="sec">In progress</h3>
+      <div class="card tap" onclick="go('games')"><div class="row">${av(opp.name)}
+        <div class="grow trunc"><div class="name trunc">${label}</div>
+        <div class="dim">${activeGame.status==='pending'?'Invite sent':`${activeGame.sa} – ${activeGame.sb}`}</div></div>
+        <span class="chip">Open</span></div></div>`;
+  }
+
+  h += `<h3 class="sec">Recent Matches</h3>`;
+  h += me.matches.length
+    ? `<div class="card">${me.matches.slice(0,5).map(m => `
+        <div class="lrow">${av(m.oppName,'sm')}
+          <div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(m.oppName)}</div>
+            <div class="res ${m.won?'w':'l'}">${m.won?'W':'L'} ${m.my} - ${m.their}</div></div>
+          <div class="dim">${ago(m.date)}</div></div>`).join('')}</div>`
+    : `<div class="card center"><svg style="width:120px;height:75px;opacity:.85" viewBox="0 0 320 200"><use href="#table"/></svg>
+        <div class="empty" style="padding:8px 12px 4px">No matches yet. Invite a friend and log your first game.</div></div>`;
+
+  $('#homeBody').innerHTML = h;
+  fillNames();
+}
+
+/* ================= ADD FRIENDS ================= */
+function renderFriends(){
+  let h = '';
+  if (me.requests.length) {
+    h += `<h3 class="sec" style="margin-top:0">Friend requests</h3>`;
+    me.requests.forEach(r => {
+      h += `<div class="card"><div class="row">${av(r.fromName)}
+        <div class="grow trunc"><div class="name trunc">${esc(r.fromName)}</div><div class="dim">@${esc(r.from)} · ${ago(r.at)}</div></div></div>
+        <div class="row" style="margin-top:12px;gap:8px">
+          <button class="btn grow" onclick="acceptFriend('${esc(r.from)}')">Add friend</button>
+          <button class="btn ghost" onclick="declineFriend('${esc(r.from)}')">Ignore</button>
+        </div></div>`;
+    });
+  }
+  if (searchResults) {
+    h += `<h3 class="sec"${me.requests.length?'':' style="margin-top:0"'}>Search results</h3>`;
+    h += !searchResults.length
+      ? `<div class="card"><div class="empty">No player by that name. Usernames have to match exactly.</div></div>`
+      : `<div class="card">${searchResults.map(u => {
+          const isMe = u.lower === me.lower;
+          const isFriend = me.friends.includes(u.lower);
+          const sent = (u.requests||[]).some(r => r.from === me.lower);
+          const btn = isMe ? `<span class="pill">You</span>`
+            : isFriend ? `<button class="chip" onclick="invite('${esc(u.lower)}')">Invite</button>`
+            : sent ? `<span class="chip done">Requested ✓</span>`
+            : `<button class="chip" onclick="addFriend('${esc(u.lower)}')">Add</button>`;
+          return `<div class="lrow"><div class="row grow" style="cursor:pointer;min-width:0" onclick="openProfile('${esc(u.lower)}','friends')">
+            ${av(u.username,'sm')}<div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(u.username)}</div>
+            <div class="dim trunc">@${esc(u.lower)}${u.streak>=3?` · 🔥 ${u.streak}`:''}</div></div></div>${btn}</div>`;
+        }).join('')}</div>`;
+  }
+  h += `<h3 class="sec">Your friends (${me.friends.length})</h3>`;
+  h += me.friends.length
+    ? `<div class="card">${me.friends.map(f => `
+        <div class="lrow"><div class="row grow" style="cursor:pointer;min-width:0" onclick="openProfile('${esc(f)}','friends')">
+          ${av(nameOf(f),'sm')}<div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(nameOf(f))}</div>
+          <div class="dim trunc">@${esc(f)}</div></div></div>
+          <button class="chip" onclick="invite('${esc(f)}')">Invite</button></div>`).join('')}</div>`
+    : `<div class="card"><div class="empty">Search a username above to send your first friend request.</div></div>`;
+  $('#friendsBody').innerHTML = h;
+  fillNames();
+}
+async function doSearch(){
+  const q = $('#searchIn').value.trim().toLowerCase();
+  if (!q) { searchResults = null; renderFriends(); return; }
+  busy = true;
+  const keys = await S.list('pp:u:');
+  const hits = keys.map(k => k.slice(5)).filter(l => l.includes(q)).slice(0, 8);
+  const recs = [];
+  for (const l of hits) { const u = await S.get(UK(l)); if (u) recs.push(u); }
+  recs.sort((a,b) => (a.lower===q?-1:0) - (b.lower===q?-1:0));
+  recs.forEach(u => NAMES[u.lower] = u.username);
+  searchResults = recs; busy = false;
+  renderFriends();
+}
+async function addFriend(lower){
+  busy = true;
+  const them = await S.get(UK(lower));
+  if (them && !them.requests.some(r => r.from === me.lower) && !them.friends.includes(me.lower)) {
+    them.requests.unshift({ from: me.lower, fromName: me.username, at: Date.now() });
+    await S.set(UK(lower), them);
+  }
+  busy = false;
+  if (searchResults && them) { const i = searchResults.findIndex(u => u.lower === lower); if (i >= 0) searchResults[i] = them; }
+  sfx('sent');
+  toast(`Friend request sent to ${them ? them.username : lower}`);
+  if (view === 'profile') renderProfile(); else renderFriends();
+}
+async function acceptFriend(lower){
+  busy = true;
+  const them = await S.get(UK(lower));
+  const fresh = await S.get(UK(me.lower)) || me;
+  fresh.requests = fresh.requests.filter(r => r.from !== lower);
+  if (them) {
+    NAMES[lower] = them.username;
+    if (!fresh.friends.includes(lower)) fresh.friends.push(lower);
+    if (!them.friends.includes(me.lower)) them.friends.push(me.lower);
+    await S.set(UK(lower), them);
+  }
+  await S.set(UK(me.lower), fresh);
+  me = fresh; busy = false;
+  sfx('sent'); toast(`${them ? them.username : lower} is now a friend`);
+  renderFriends(); updateDots();
+}
+async function declineFriend(lower){
+  busy = true;
+  const fresh = await S.get(UK(me.lower)) || me;
+  fresh.requests = fresh.requests.filter(r => r.from !== lower);
+  await S.set(UK(me.lower), fresh);
+  me = fresh; busy = false; renderFriends(); updateDots();
+}
+
+/* ================= PROFILE ================= */
+async function openProfile(lower, from){
+  prevView = from || view;
+  viewingProfile = lower;
+  view = 'profile';
+  $('#profBack').style.visibility = 'visible';
+  show('s-profile');
+  $('#profileBody').innerHTML = `<div class="card"><div class="empty">Loading…</div></div>`;
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === (lower === me.lower ? 'profile' : prevView)));
+  renderProfile();
+}
+async function renderProfile(){
+  const lower = viewingProfile;
+  const u = lower === me.lower ? me : await S.get(UK(lower));
+  if (!u) { $('#profileBody').innerHTML = `<div class="card"><div class="empty">That player no longer exists.</div></div>`; return; }
+  const mine = u.lower === me.lower;
+  const played = u.wins + u.losses;
+  const h2h = mine ? [] : me.matches.filter(m => m.opp === u.lower);
+  const h2hW = h2h.filter(m => m.won).length;
+  const isFriend = me.friends.includes(u.lower);
+  const sent = !mine && !isFriend && (u.requests||[]).some(r => r.from === me.lower);
+
+  let h = `<div class="card center" style="padding-top:22px">
+    ${av(u.username,'lg')}
+    <div class="name" style="font-size:23px;margin-top:12px;letter-spacing:-.5px">${esc(u.username)}</div>
+    <div class="dim">@${esc(u.lower)}</div>
+    ${u.streak >= 3 ? `<div class="pill fire" style="margin-top:10px">🔥 ${u.streak} Win Streak</div>` : ''}
+    <div class="stats">
+      <div class="stat"><b>${played}</b><span>Matches</span></div>
+      <div class="stat"><b>${u.wins}</b><span>Wins</span></div>
+      <div class="stat"><b>${u.losses}</b><span>Losses</span></div>
+    </div>
+    <div class="row" style="justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+      <span class="pill">${rate(u)}% win rate</span>
+      <span class="pill">Streak ${u.streak}</span>
+      <span class="pill">Best ${u.best}</span>
+    </div>
+    <div style="margin-top:16px">
+      ${mine ? ''
+        : isFriend ? `<button class="btn block" onclick="invite('${esc(u.lower)}')">Invite to Play</button>`
+        : sent ? `<span class="chip done">Friend request sent ✓</span>`
+        : `<button class="btn block" onclick="addFriend('${esc(u.lower)}')">Add friend</button>`}
+    </div>
+  </div>`;
+
+  if (mine) {
+    h += `<div class="card">
+      <div class="lrow" style="padding-top:0">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3d8fe0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>${soundOn ? '<path d="M16 9.5a4 4 0 010 5M18.5 7a7.5 7.5 0 010 10"/>' : '<path d="M16.5 10l4 4M20.5 10l-4 4"/>'}</svg>
+        <div class="grow"><div class="name" style="font-size:15px">Interface sounds</div>
+          <div class="dim">${soundOn ? 'Ping-pong feedback on every tap' : 'Muted'}</div></div>
+        <button class="chip ${soundOn?'on':''}" onclick="toggleSound()">${soundOn ? 'On' : 'Off'}</button>
+      </div>
+      <div class="lrow" style="padding-bottom:0">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3d8fe0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M15 4l5 5-9.5 9.5L4 20l1.5-6.5z"/></svg>
+        <div class="grow"><div class="name" style="font-size:15px">Playing since</div>
+          <div class="dim">${new Date(u.created).toLocaleDateString(undefined,{month:'long',year:'numeric'})}</div></div>
+      </div></div>
+      <button class="btn block ghost" onclick="signOut()">Sign out</button>`;
+  } else {
+    h += `<div class="card"><div class="row">
+      <div class="grow"><div class="dim">Head to head</div>
+        <div class="name" style="font-size:26px;letter-spacing:-1px">${h2hW} – ${h2h.length-h2hW}</div></div>
+      <div class="dim" style="text-align:right;max-width:46%">${h2h.length ? `${h2h.length} match${h2h.length>1?'es':''} against you` : 'No matches between you two yet'}</div>
+    </div></div>`;
+  }
+
+  h += `<h3 class="sec">Match History</h3>`;
+  h += u.matches.length
+    ? `<div class="card">${u.matches.slice(0,15).map(m => `
+        <div class="lrow">${av(m.oppName,'sm')}
+          <div class="grow trunc"><div class="name trunc" style="font-size:15px">vs ${esc(m.oppName)}</div>
+            <div class="res ${m.won?'w':'l'}">${m.won?'W':'L'} ${m.my} - ${m.their}</div></div>
+          <div class="dim">${ago(m.date)}</div></div>`).join('')}</div>`
+    : `<div class="card"><div class="empty">No matches logged yet.</div></div>`;
+  $('#profileBody').innerHTML = h;
+}
+
+/* ================= GAMES ================= */
+function oppOf(g){
+  return g.aLower === me.lower
+    ? { lower:g.bLower, name:g.bName, meIsA:true }
+    : { lower:g.aLower, name:g.aName, meIsA:false };
+}
+async function invite(lower){
+  if (activeGame && !['done','declined'].includes(activeGame.status)) {
+    toast('Finish your current match first'); sfx('error'); go('games'); return;
+  }
+  busy = true;
+  const them = await S.get(UK(lower));
+  if (!them) { busy = false; toast('That player could not be found'); sfx('error'); return; }
+  NAMES[them.lower] = them.username;
+  const id = me.lower + '-' + Date.now().toString(36);
+  const g = { id, aLower:me.lower, aName:me.username, bLower:them.lower, bName:them.username,
+    sa:0, sb:0, status:'pending', rev:1, created:Date.now() };
+  await S.set(GK(id), g);
+  them.invites.unshift({ gameId:id, from:me.lower, fromName:me.username, at:Date.now() });
+  await S.set(UK(lower), them);
+  activeGame = g; lastStatus = 'pending'; inviteSel = null;
+  await S.set('pp:active', id, false);
+  busy = false;
+  sfx('sent'); toast(`Invite sent to ${them.username}`);
+  go('games');
+}
+async function acceptInvite(id){
+  busy = true;
+  const g = await S.get(GK(id));
+  const fresh = await S.get(UK(me.lower)) || me;
+  fresh.invites = fresh.invites.filter(i => i.gameId !== id);
+  await S.set(UK(me.lower), fresh); me = fresh;
+  if (g) { g.status = 'active'; g.rev++; await S.set(GK(id), g); activeGame = g; lastStatus = 'active'; await S.set('pp:active', id, false); }
+  busy = false; sfx('finish'); flyBall();
+  go('games');
+}
+async function declineInvite(id){
+  busy = true;
+  const g = await S.get(GK(id));
+  if (g) { g.status = 'declined'; g.rev++; await S.set(GK(id), g); }
+  const fresh = await S.get(UK(me.lower)) || me;
+  fresh.invites = fresh.invites.filter(i => i.gameId !== id);
+  await S.set(UK(me.lower), fresh); me = fresh;
+  busy = false; renderHome(); updateDots();
+}
+let chain = Promise.resolve();
+function queue(fn){ chain = chain.then(fn).catch(() => {}); return chain; }
+function applyPoint(g, side, delta){
+  if (side === 'a') g.sa = Math.max(0, g.sa + delta); else g.sb = Math.max(0, g.sb + delta);
+  g.rev = (g.rev || 0) + 1;
+  return g;
+}
+function bump(side, delta){
+  if (!activeGame || activeGame.status !== 'active') return;
+  const id = activeGame.id;
+  applyPoint(activeGame, side, delta);
+  renderGame();
+  return queue(async () => {
+    busy = true;
+    const fresh = await S.get(GK(id));
+    if (fresh && fresh.status === 'active') {
+      applyPoint(fresh, side, delta);
+      await S.set(GK(id), fresh);
+      if (activeGame && activeGame.id === id) { activeGame = fresh; renderGame(); }
+    }
+    busy = false;
+  });
+}
+function winState(g){
+  const hi = Math.max(g.sa, g.sb), lo = Math.min(g.sa, g.sb);
+  if (hi >= 11 && hi - lo >= 2) return 'over';
+  if (hi >= 10 && hi - lo >= 1) return 'point';
+  return 'play';
+}
+function renderGame(){
+  const g = activeGame;
+  const title = $('#gameTitle'), backBtn = $('#gameBack');
+
+  if (!g || g.status === 'declined') {
+    title.textContent = 'Invite to Play';
+    backBtn.style.visibility = 'hidden';
+    if (document.getElementById('inviteFilter') && !g) { renderInviteList(); return; }
+    let h = `<div class="card">
+      <div class="name center" style="font-size:16px;margin-bottom:14px">Invite a friend to start a match!</div>
+      <div class="ifield">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <input id="inviteFilter" placeholder="Search friends…" oninput="renderInviteList()" autocomplete="off">
+      </div>
+      <div id="inviteList"></div>
+    </div>
+    <button class="btn block" id="sendInvite" disabled onclick="sendInvite()">Send Invite</button>`;
+    if (g) {
+      const opp = oppOf(g);
+      h = `<div class="card center">
+        <div class="name" style="font-size:17px">${esc(opp.name)} passed on this one</div>
+        <div class="dim" style="margin-top:4px">Send another invite whenever you're both free.</div>
+        <button class="btn block ghost" style="margin-top:14px" onclick="endGame()">OK</button></div>` + h;
+    }
+    $('#gameBody').innerHTML = h;
+    renderInviteList();
+    fillNames();
+    return;
+  }
+
+  const opp = oppOf(g);
+
+  if (g.status === 'pending') {
+    title.textContent = 'Invite Sent';
+    backBtn.style.visibility = 'hidden';
+    const mineSent = g.aLower === me.lower;
+    $('#gameBody').innerHTML = `<div class="card center" style="padding-top:24px">
+      ${av(opp.name,'lg')}
+      <div class="name" style="font-size:19px;margin-top:12px">${mineSent ? 'Waiting for ' + esc(opp.name) : esc(opp.name) + ' invited you'}</div>
+      <div class="dim" style="margin-top:4px">${mineSent ? 'The scoreboard opens as soon as they accept.' : 'Accept from the Home tab to start scoring.'}</div>
+      <svg style="width:150px;height:94px;margin-top:14px;opacity:.9" viewBox="0 0 320 200"><use href="#table"/></svg>
+      <button class="btn block ghost" style="margin-top:12px" onclick="cancelGame()">Cancel invite</button>
+    </div>`;
+    return;
+  }
+
+  if (g.status === 'review' || g.status === 'done') { renderFinished(g); return; }
+
+  /* live match */
+  title.textContent = 'Match';
+  backBtn.style.visibility = 'hidden';
+  const ws = winState(g);
+  const hint = ws === 'over' ? 'Match complete' : ws === 'point' ? 'Match point!' : 'First to 11, win by 2';
+  const mySide = opp.meIsA ? 'a' : 'b', theirSide = opp.meIsA ? 'b' : 'a';
+  const myScore = opp.meIsA ? g.sa : g.sb, theirScore = opp.meIsA ? g.sb : g.sa;
+  $('#gameBody').innerHTML = `
+    <div class="scorebar">
+      <div class="scorecard" onclick="bump('${mySide}',1)">
+        ${av(me.username)}<div class="who">You</div><b>${myScore}</b>
+        <button class="minus" onclick="event.stopPropagation();bump('${mySide}',-1)">−</button>
+      </div>
+      <div class="vs">VS</div>
+      <div class="scorecard" onclick="bump('${theirSide}',1)">
+        ${av(opp.name)}<div class="who trunc">${esc(opp.name)}</div><b>${theirScore}</b>
+        <button class="minus" onclick="event.stopPropagation();bump('${theirSide}',-1)">−</button>
+      </div>
+    </div>
+    <div class="tablecard"><div class="hint">${hint}</div>
+      <svg viewBox="0 0 320 200"><use href="#table"/></svg></div>
+    <div class="dim center" style="margin-bottom:12px">Tap a player's card to give them the point.</div>
+    <button class="btn block" ${g.sa===g.sb?'disabled':''} onclick="finishMatch()">Finish Match</button>
+    <button class="btn block quiet" style="margin-top:6px" onclick="cancelGame()">End Game</button>`;
+}
+function renderInviteList(){
+  const box = $('#inviteList');
+  if (!box) return;
+  const q = ($('#inviteFilter') ? $('#inviteFilter').value : '').trim().toLowerCase();
+  const list = me.friends.filter(f => !q || f.includes(q) || nameOf(f).toLowerCase().includes(q));
+  box.innerHTML = list.length
+    ? list.map(f => `<div class="lrow${inviteSel===f?' sel':''}">
+        <div class="row grow" style="cursor:pointer;min-width:0" onclick="pickFriend('${esc(f)}')">
+          ${av(nameOf(f),'sm')}<div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(nameOf(f))}</div>
+          <div class="dim trunc">@${esc(f)}</div></div></div>
+        <button class="chip ${inviteSel===f?'on':''}" onclick="pickFriend('${esc(f)}')">${inviteSel===f?'Selected':'Select'}</button></div>`).join('')
+    : `<div class="empty">${me.friends.length ? 'No friend by that name.' : 'Add a friend first, then invite them here.'}</div>`;
+  if (!me.friends.length) box.innerHTML += `<button class="btn block ghost" onclick="go('friends')">Add Friends</button>`;
+  const send = $('#sendInvite');
+  if (send) {
+    const ok = inviteSel && me.friends.includes(inviteSel);
+    if (ok) send.removeAttribute('disabled'); else send.setAttribute('disabled','');
+    send.textContent = ok ? `Send Invite to ${nameOf(inviteSel)}` : 'Send Invite';
+  }
+}
+function pickFriend(f){ inviteSel = (inviteSel === f ? null : f); renderInviteList(); }
+function sendInvite(){ if (inviteSel) invite(inviteSel); }
+
+async function finishMatch(){
+  if (!activeGame || activeGame.sa === activeGame.sb) return;
+  await chain;
+  busy = true;
+  const g = (await S.get(GK(activeGame.id))) || activeGame;
+  if (g.status === 'active') { g.status = 'review'; g.rev++; await S.set(GK(g.id), g); }
+  activeGame = g; lastStatus = g.status; busy = false;
+  sfx('finish'); flyBall();
+  renderGame();
+}
+function renderFinished(g){
+  const logged = g.status === 'done';
+  $('#gameTitle').textContent = logged ? 'Match Logged' : 'Game Finished';
+  $('#gameBack').style.visibility = 'hidden';
+  const opp = oppOf(g);
+  const my = opp.meIsA ? g.sa : g.sb, their = opp.meIsA ? g.sb : g.sa;
+  const iWon = logged ? g.winner === me.lower : my > their;
+  $('#gameBody').innerHTML = `<div class="card center" style="padding-top:22px">
+    <svg class="trophy"><use href="#trophy"/></svg>
+    <h2 style="margin:0;font-size:24px;color:var(--navy);letter-spacing:-.6px">${logged ? (iWon ? 'You won!' : 'Good game!') : 'Game Finished!'}</h2>
+    <div class="dim" style="margin-top:3px">${logged ? 'Saved to both match histories.' : 'Check the score, then log it.'}</div>
+    <div class="finalscore">
+      <span>You</span><b>${my} - ${their}</b><span>${esc(opp.name)}</span>
+    </div>
+    ${logged && iWon && me.streak >= 3 ? `<div class="pill fire" style="margin-bottom:14px">🔥 ${me.streak} Win Streak</div>` : ''}
+    ${logged
+      ? `<button class="btn block" onclick="endGame()">Back to Home</button>
+         <button class="btn block ghost" style="margin-top:8px" onclick="openProfile('${esc(opp.lower)}','games')">View Match Details</button>
+         <button class="btn block quiet" style="margin-top:4px" onclick="rematch('${esc(opp.lower)}')">Rematch</button>`
+      : `<button class="btn block" onclick="logResult()">Log Score</button>
+         <button class="btn block ghost" style="margin-top:8px" onclick="openProfile('${esc(opp.lower)}','games')">View Match Details</button>
+         <button class="btn block quiet" style="margin-top:4px" onclick="reopenMatch()">Fix the score</button>`}
+  </div>`;
+}
+async function reopenMatch(){
+  if (!activeGame || activeGame.status !== 'review') return;
+  busy = true;
+  const g = (await S.get(GK(activeGame.id))) || activeGame;
+  if (g.status === 'review') { g.status = 'active'; g.rev++; await S.set(GK(g.id), g); }
+  activeGame = g; lastStatus = g.status; busy = false;
+  renderGame();
+}
+async function endGame(){ activeGame = null; lastStatus = null; await S.set('pp:active', null, false); go('home'); }
+async function rematch(lower){ activeGame = null; lastStatus = null; await S.set('pp:active', null, false); await invite(lower); }
+async function cancelGame(){
+  if (!activeGame) { go('home'); return; }
+  busy = true;
+  const g = activeGame;
+  g.status = 'declined'; g.rev++;
+  await S.set(GK(g.id), g);
+  const them = await S.get(UK(oppOf(g).lower));
+  if (them) { them.invites = them.invites.filter(i => i.gameId !== g.id); await S.set(UK(them.lower), them); }
+  activeGame = null; lastStatus = null;
+  await S.set('pp:active', null, false);
+  busy = false;
+  go('home');
+}
+async function logResult(){
+  if (!activeGame || activeGame.sa === activeGame.sb) return;
+  await chain;
+  busy = true;
+  const g = (await S.get(GK(activeGame.id))) || activeGame;
+  if (g.status === 'done' || g.sa === g.sb) { activeGame = g; busy = false; renderGame(); return; }
+  const winnerIsA = g.sa > g.sb;
+  const wLower = winnerIsA ? g.aLower : g.bLower;
+  const lLower = winnerIsA ? g.bLower : g.aLower;
+  const wScore = Math.max(g.sa, g.sb), lScore = Math.min(g.sa, g.sb);
+  const W = await S.get(UK(wLower)), L = await S.get(UK(lLower));
+  const when = Date.now();
+  if (W && L) {
+    W.wins++; W.streak++; W.best = Math.max(W.best, W.streak);
+    W.matches.unshift({ id:g.id, date:when, opp:L.lower, oppName:L.username, my:wScore, their:lScore, won:true });
+    L.losses++; L.streak = 0;
+    L.matches.unshift({ id:g.id, date:when, opp:W.lower, oppName:W.username, my:lScore, their:wScore, won:false });
+    await S.set(UK(wLower), W);
+    await S.set(UK(lLower), L);
+  }
+  g.status = 'done'; g.winner = wLower; g.finished = when; g.rev++;
+  await S.set(GK(g.id), g);
+  activeGame = g; lastStatus = 'done';
+  me = (me.lower === wLower ? W : L) || me;
+  seenMatches = me.matches.length;
+  busy = false;
+  renderGame();
+  toast('Score logged');
+  if (me.lower === wLower) {
+    sfx('finish');
+    if (me.streak >= 3) setTimeout(() => showFire(me.streak), 450);
+  } else sfx('undo');
+}
+
+/* ================= STREAK CELEBRATION ================= */
+let fireTimer = null;
+function showFire(n){
+  $('#firenum').textContent = n;
+  $('#firetitle').textContent = `${n} Win Streak!`;
+  $('#firesub').textContent = `You've won ${n} games in a row!`;
+  const box = $('#fire');
+  box.classList.add('on');
+  requestAnimationFrame(() => box.classList.add('vis'));
+  sfx('streak');
+  flyBall(720);
+  setTimeout(() => flyBall(760), 260);
+  if (navigator.vibrate) navigator.vibrate([18, 40, 18, 40, 30]);
+  clearTimeout(fireTimer);
+  fireTimer = setTimeout(closeFire, 5200);
+}
+function closeFire(){
+  clearTimeout(fireTimer);
+  const box = $('#fire');
+  box.classList.remove('vis');
+  setTimeout(() => box.classList.remove('on'), 420);
+}
+
+/* ================= input wiring ================= */
+$('#nameIn').addEventListener('keydown', e => { if (e.key === 'Enter') createAccount(); });
+$('#searchIn').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+let searchTimer = null;
+$('#searchIn').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const v = e.target.value.trim();
+  if (!v) { searchResults = null; renderFriends(); return; }
+  if (v.length < 2) return;
+  searchTimer = setTimeout(doSearch, 420);
+});
+</script>
