@@ -23,13 +23,14 @@
   --white:#fff;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;min-height:100%}
+html,body{margin:0;height:100%;overscroll-behavior:none}
 body{
   background:linear-gradient(180deg,var(--sky-1) 0%,var(--sky-2) 58%,var(--sky-3) 100%);
   background-attachment:fixed;color:var(--ink);
   font-family:ui-rounded,"SF Pro Rounded","Hiragino Maru Gothic ProN",Quicksand,Nunito,"Trebuchet MS",system-ui,sans-serif;
   font-size:16px;line-height:1.45;overflow-x:hidden;overscroll-behavior-y:none;
   -webkit-text-size-adjust:100%;touch-action:manipulation;
+  height:100%;overflow:hidden;
 }
 button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation}
 /* soft light pooling in the corners, so the page feels lit rather than flat */
@@ -42,7 +43,8 @@ body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 .logoimg.md{width:104px;height:104px}
 .logoimg.lg{width:128px;height:128px}
 input{font:inherit}
-.wrap{max-width:440px;margin:0 auto;padding:0 18px 118px;position:relative}
+.wrap{max-width:440px;margin:0 auto;padding:0 18px 130px;position:relative;
+  height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .screen{display:none}
 .screen.on{display:block;animation:rise .3s ease both}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
@@ -132,12 +134,11 @@ h3.sec{font-size:15px;font-weight:800;color:var(--navy);margin:20px 4px 10px}
 
 /* ---------- stats ---------- */
 .stats{display:flex;gap:10px;margin-top:16px}
-.stat{flex:1;background:var(--pale);border-radius:16px;padding:13px 6px;text-align:center}
-.stat b{display:block;font-size:24px;color:#0d3d70;letter-spacing:-.6px;line-height:1.15}
-.stat.win{background:#e3f6ea}
-.stat.win b{color:#15803d}
-.stat.loss{background:#fde8e8}
-.stat.loss b{color:#c0392b}
+.stat{flex:1;background:none;border-radius:0;padding:6px 4px;text-align:center}
+.stat b{display:block;font-size:25px;color:#0b3a6b;letter-spacing:-.6px;line-height:1.15}
+.wv{color:#15803d}
+.lv{color:#c0392b}
+.sl{color:#a9c8e4;margin:0 5px;font-weight:700}
 .stat span{font-size:12.5px;color:var(--muted);font-weight:700}
 
 /* ---------- match ---------- */
@@ -188,13 +189,18 @@ h3.sec{font-size:15px;font-weight:800;color:var(--navy);margin:20px 4px 10px}
 
 /* ---------- nav ---------- */
 nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:45;display:none;
-  background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-top:1px solid #e2eefa;
-  padding:9px 0 max(10px,env(safe-area-inset-bottom))}
+  background:rgba(255,255,255,.96);backdrop-filter:blur(12px);border-top:1px solid #e2eefa;
+  padding:6px 0 max(14px,env(safe-area-inset-bottom))}
 nav.tabs.on{display:flex}
 nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
-.tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;
-  font-size:11px;font-weight:800;color:#a8c6e2;position:relative}
-.tab.on{color:var(--blue-2)}
+.tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  min-height:58px;padding:8px 0;border-radius:16px;margin:0 4px;
+  font-size:11.5px;font-weight:800;color:#9dc0de;position:relative;
+  transition:background .16s ease,color .16s ease}
+.tab:active{background:rgba(61,143,224,.12)}
+.tab.on{color:var(--blue-deep);background:rgba(255,255,255,.75);
+  border:2px solid rgba(42,120,207,.5);padding:6px 0;
+  box-shadow:0 0 12px rgba(61,143,224,.28), inset 0 0 12px rgba(150,205,250,.3)}
 .tab .dot{position:absolute;top:0;right:calc(50% - 20px);width:9px;height:9px;border-radius:50%;
   background:#ff5a5a;border:2px solid #fff;display:none}
 .tab .dot.on{display:block}
@@ -228,9 +234,9 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
 #demonote{background:#fdf0d5;color:#8a5b12;border-radius:14px;padding:11px 14px;font-size:13px;
   font-weight:700;margin-bottom:14px;display:none}
 #demonote.on{display:block}
-#ver{position:fixed;right:14px;bottom:calc(72px + env(safe-area-inset-bottom));z-index:46;
+#ver{position:fixed;right:14px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:46;
   font-size:11px;font-weight:800;color:#4b83bb;opacity:.8;pointer-events:none;letter-spacing:.3px}
-#toast{position:fixed;left:50%;bottom:88px;transform:translate(-50%,14px);z-index:80;opacity:0;
+#toast{position:fixed;left:50%;bottom:100px;transform:translate(-50%,14px);z-index:80;opacity:0;
   background:rgba(21,71,126,.94);color:#fff;font-weight:800;font-size:14px;padding:11px 20px;border-radius:999px;
   transition:opacity .25s ease,transform .25s ease;pointer-events:none;max-width:86vw;text-align:center}
 #toast.on{opacity:1;transform:translate(-50%,0)}
@@ -351,6 +357,7 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
 <!-- ================= CREATE ACCOUNT ================= -->
 <section class="screen" id="s-auth">
   <div style="height:calc(30px + env(safe-area-inset-top))"></div>
+  <div id="demonote">Running without a database, so accounts only last until you close the tab.</div>
   <div class="card center" style="padding:26px 20px 24px;position:relative;overflow:hidden">
     <i class="logoimg md"></i>
     <h2 style="margin:14px 0 4px;font-size:25px;color:var(--navy);letter-spacing:-.6px">Create Your Account</h2>
@@ -409,15 +416,15 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
 
 <nav class="tabs" id="tabs"><div class="inner">
   <button class="tab" data-tab="home" onclick="go('home')">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"><path d="M4 11l8-6.5 8 6.5V19a1 1 0 01-1 1h-4v-5h-6v5H5a1 1 0 01-1-1z"/></svg>Home</button>
+    <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linejoin="round" stroke-linecap="round"><path d="M4 11l8-6.5 8 6.5V19a1 1 0 01-1 1h-4v-5h-6v5H5a1 1 0 01-1-1z"/></svg>Home</button>
   <button class="tab" data-tab="friends" onclick="go('friends')">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="9" cy="8" r="3.3"/><path d="M3 19c0-3.2 2.7-5 6-5s6 1.8 6 5"/><path d="M16.5 5.6a3 3 0 010 5.6M18.5 19c0-2.2-.7-3.6-2-4.6"/></svg>Friends<span class="dot" id="fdot"></span></button>
+    <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="9" cy="8" r="3.3"/><path d="M3 19c0-3.2 2.7-5 6-5s6 1.8 6 5"/><path d="M16.5 5.6a3 3 0 010 5.6M18.5 19c0-2.2-.7-3.6-2-4.6"/></svg>Friends<span class="dot" id="fdot"></span></button>
   <button class="tab" data-tab="games" onclick="go('games')">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+    <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
       <g transform="rotate(-32 11 11)"><ellipse cx="11" cy="8.4" rx="5.2" ry="6"/><path d="M11 14.6v4.6" stroke-width="2.6"/></g>
       <circle cx="18.4" cy="15.6" r="2.2"/></svg>Games<span class="dot" id="gdot"></span></button>
   <button class="tab" data-tab="profile" onclick="go('profile')">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>Profile</button>
+    <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20c0-3.6 3.1-6 7-6s7 2.4 7 6"/></svg>Profile</button>
 </div></nav>
 
 <script>
@@ -533,39 +540,57 @@ function pop(freq, vol, at, spread){
   const j = 1 + (Math.random()*2 - 1) * (spread === undefined ? .06 : spread);
   const f = freq * j;
 
+  // rounded off with a low-pass so nothing in it is sharp
+  const lp = c.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(2100 * j, t);
+  lp.frequency.exponentialRampToValueAtTime(900 * j, t + .18);
+  lp.Q.value = .5;
+  lp.connect(c.destination);
+
   const o = c.createOscillator(), g = c.createGain();
   o.type = 'sine';
-  o.frequency.setValueAtTime(f * 2.1, t);
-  o.frequency.exponentialRampToValueAtTime(f, t + .014);
-  o.frequency.exponentialRampToValueAtTime(f * .58, t + .13);
+  o.frequency.setValueAtTime(f * 1.55, t);
+  o.frequency.exponentialRampToValueAtTime(f, t + .022);
+  o.frequency.exponentialRampToValueAtTime(f * .68, t + .17);
   g.gain.setValueAtTime(.0001, t);
-  g.gain.exponentialRampToValueAtTime(vol, t + .007);
-  g.gain.exponentialRampToValueAtTime(.0004, t + .17);
-  o.connect(g).connect(c.destination);
-  o.start(t); o.stop(t + .19);
+  g.gain.exponentialRampToValueAtTime(vol, t + .016);   // gentle swell, no hard edge
+  g.gain.exponentialRampToValueAtTime(.0004, t + .23);
+  o.connect(g).connect(lp);
+  o.start(t); o.stop(t + .25);
 
-  // the click of a ball meeting a paddle
+  // a soft body underneath, an octave down, for warmth
+  const o2 = c.createOscillator(), g2 = c.createGain();
+  o2.type = 'sine';
+  o2.frequency.setValueAtTime(f * .5, t);
+  g2.gain.setValueAtTime(.0001, t);
+  g2.gain.exponentialRampToValueAtTime(vol * .5, t + .02);
+  g2.gain.exponentialRampToValueAtTime(.0004, t + .2);
+  o2.connect(g2).connect(lp);
+  o2.start(t); o2.stop(t + .22);
+
+  // the faintest celluloid tick, well under the tone
   const b = noise();
   if (b) {
     const s = c.createBufferSource(); s.buffer = b;
     const bp = c.createBiquadFilter(); bp.type = 'bandpass';
-    bp.frequency.value = 2400 * j; bp.Q.value = .8;
+    bp.frequency.value = 1700 * j; bp.Q.value = 1.4;
     const ng = c.createGain();
-    ng.gain.setValueAtTime(vol * .55, t);
-    ng.gain.exponentialRampToValueAtTime(.0004, t + .028);
+    ng.gain.setValueAtTime(vol * .16, t);
+    ng.gain.exponentialRampToValueAtTime(.0003, t + .02);
     s.connect(bp).connect(ng).connect(c.destination); s.start(t);
   }
 }
 function sfx(kind){
   if (!soundOn) return;
-  if (kind === 'tap')        pop(540, .24);
-  else if (kind === 'score') pop(760, .3);
-  else if (kind === 'undo')  pop(360, .2);
-  else if (kind === 'error') pop(210, .22, 0, .02);
-  else if (kind === 'sent')  { pop(560, .24); pop(760, .2, .09); }
-  else if (kind === 'finish'){ [520,660,780,960].forEach((f,i) => pop(f, .26, i*.1, .02)); }
-  else if (kind === 'streak'){ [520,660,780,960,1180,1420].forEach((f,i) => pop(f, .27, i*.085, .015));
-                               pop(1580, .2, .58, .01); pop(1900, .16, .66, .01); }
+  if (kind === 'tap')        pop(480, .13);
+  else if (kind === 'score') pop(660, .17);
+  else if (kind === 'undo')  pop(330, .11);
+  else if (kind === 'error') pop(200, .13, 0, .02);
+  else if (kind === 'sent')  { pop(500, .13); pop(660, .11, .1); }
+  else if (kind === 'finish'){ [440,560,660,830].forEach((f,i) => pop(f, .15, i*.11, .02)); }
+  else if (kind === 'streak'){ [440,560,660,830,990,1180].forEach((f,i) => pop(f, .16, i*.095, .015));
+                               pop(1320, .12, .62, .01); pop(1580, .1, .72, .01); }
 }
 
 /* ================= press feedback ================= */
@@ -574,7 +599,7 @@ function reduced(){
   catch (e) { return false; }
 }
 function sparks(x, y){
-  if (reduced()) return;
+  if (reduced() || !document.body.animate) return;
   const n = 12;
   for (let i = 0; i < n; i++) {
     const a = (Math.PI*2) * (i/n) + Math.random()*.4;
@@ -590,14 +615,18 @@ function sparks(x, y){
     anim.onfinish = () => el.remove();
   }
 }
-document.addEventListener('pointerdown', e => {
+/* click, not pointerdown: the sound belongs to a completed press, so dragging
+   off a button leaves it silent */
+document.addEventListener('click', e => {
   const b = e.target.closest('.btn,.chip,.tab,.scorecard,.card.tap,.minus');
   if (!b || b.hasAttribute('disabled')) return;
-  sparks(e.clientX, e.clientY);
+  const x = e.clientX || (b.getBoundingClientRect().left + b.offsetWidth/2);
+  const y = e.clientY || (b.getBoundingClientRect().top + b.offsetHeight/2);
+  sparks(x, y);
   if (b.classList.contains('minus')) sfx('undo');
   else if (b.classList.contains('scorecard')) sfx('score');
   else sfx('tap');
-  if (navigator.vibrate) navigator.vibrate(8);
+  if (navigator.vibrate) navigator.vibrate(6);
 }, true);
 
 /* a ball streaking across, used for match start and celebrations */
@@ -626,7 +655,7 @@ function toast(msg){
 }
 
 /* ================= helpers ================= */
-const VERSION = 'v2.0';
+const VERSION = 'v2.1';
 const $ = s => document.querySelector(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* run an async action with a highlight sweeping across the button that started it */
@@ -729,7 +758,8 @@ let seenMatches = 0, poller = null, busy = false, searchResults = null, inviteSe
     seenMatches = me.matches.length;
     await enter();
   } else {
-    if (backend === 'memory') document.getElementById('demonote').classList.add('on');
+    const dn = document.getElementById('demonote');
+    if (dn && backend === 'memory') dn.classList.add('on');
     $('#ver').textContent = VERSION;
     show('s-auth');
     setTimeout(() => $('#nameIn').focus(), 120);
@@ -738,7 +768,8 @@ let seenMatches = 0, poller = null, busy = false, searchResults = null, inviteSe
 
 function show(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
-  window.scrollTo(0,0);
+  const w = document.querySelector('.wrap');
+  if (w) w.scrollTop = 0;
 }
 async function enter(){
   $('#tabs').classList.add('on');
@@ -1010,8 +1041,7 @@ async function renderProfile(){
     ${u.streak >= 3 ? `<div class="pill fire" style="margin-top:10px">🔥 ${u.streak} Win Streak</div>` : ''}
     <div class="stats">
       <div class="stat"><b>${played}</b><span>Matches</span></div>
-      <div class="stat win"><b>W ${u.wins}</b><span>Wins</span></div>
-      <div class="stat loss"><b>L ${u.losses}</b><span>Losses</span></div>
+      <div class="stat"><b><span class="wv">W ${u.wins}</span><span class="sl">/</span><span class="lv">L ${u.losses}</span></b><span>Record</span></div>
     </div>
     <div class="row" style="justify-content:center;gap:8px;margin-top:12px;flex-wrap:wrap">
       <span class="pill">${rate(u)}% win rate</span>
@@ -1030,14 +1060,14 @@ async function renderProfile(){
   if (mine) {
     h += `<div class="card">
       <div class="lrow" style="padding-top:0">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3d8fe0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#3d8fe0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
           <path d="M4 9.5h3.5L12 5.5v13L7.5 14.5H4z"/>${soundOn ? '<path d="M16 9.5a4 4 0 010 5M18.5 7a7.5 7.5 0 010 10"/>' : '<path d="M16.5 10l4 4M20.5 10l-4 4"/>'}</svg>
         <div class="grow"><div class="name" style="font-size:15px">Interface sounds</div>
           <div class="dim">${soundOn ? 'Ping-pong feedback on every tap' : 'Muted'}</div></div>
         <button class="chip ${soundOn?'on':''}" onclick="toggleSound()">${soundOn ? 'On' : 'Off'}</button>
       </div>
       <div class="lrow" style="padding-bottom:0">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3d8fe0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="#3d8fe0" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
           <path d="M15 4l5 5-9.5 9.5L4 20l1.5-6.5z"/></svg>
         <div class="grow"><div class="name" style="font-size:15px">Playing since</div>
           <div class="dim">${new Date(u.created).toLocaleDateString(undefined,{month:'long',year:'numeric'})}</div></div>
