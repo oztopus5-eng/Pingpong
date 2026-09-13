@@ -168,23 +168,106 @@ h3.sec{font-size:15px;font-weight:800;color:var(--navy);margin:20px 4px 10px}
 
 /* ---------- streak ---------- */
 #fire{position:fixed;inset:0;z-index:90;display:none;place-items:center;padding:26px;text-align:center;
-  background:radial-gradient(circle at 50% 44%,#fff 0%,#eaf6ff 44%,rgba(150,200,240,.95) 100%);
-  opacity:0;transition:opacity .4s ease}
+  background:radial-gradient(circle at 47% 40%,#fff8ec 0%,#ffe9ca 32%,#e8f2ff 64%,rgba(150,200,240,.96) 100%);
+  opacity:0;transition:opacity .22s ease}
 #fire.on{display:grid}
 #fire.vis{opacity:1}
-.rays{position:absolute;width:340px;height:340px;left:50%;top:50%;margin:-170px 0 0 -170px;
-  background:repeating-conic-gradient(from 0deg,rgba(255,186,84,.55) 0deg 3.5deg,rgba(255,255,255,0) 3.5deg 15deg);
-  border-radius:50%;-webkit-mask-image:radial-gradient(circle,transparent 27%,#000 43%,transparent 72%);
-  mask-image:radial-gradient(circle,transparent 27%,#000 43%,transparent 72%);animation:spin 24s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.dashes{position:absolute;left:50%;top:50%;width:300px;height:300px;margin:-150px 0 0 -150px;
-  animation:spin 30s linear infinite reverse}
+
+/* heat haze behind the flame, pushed off centre so nothing lines up perfectly */
+.fglow{position:absolute;left:47%;top:41%;width:380px;height:420px;margin:-215px 0 0 -190px;
+  border-radius:52% 48% 46% 54%/58% 56% 44% 42%;
+  background:radial-gradient(circle at 48% 55%,rgba(255,164,56,.6),rgba(255,138,38,.18) 46%,transparent 70%);
+  transform:scale(.2);opacity:0;animation:glowup .5s ease .06s forwards, glowpulse 1.7s ease-in-out .56s infinite}
+@keyframes glowup{to{transform:scale(1);opacity:1}}
+@keyframes glowpulse{0%,100%{transform:scale(1) rotate(0deg)}
+  40%{transform:scale(1.1) rotate(2deg)}70%{transform:scale(1.04) rotate(-1.5deg)}}
+
+.rays{position:absolute;left:50%;top:50%;width:330px;height:330px;margin:-166px 0 0 -162px;
+  opacity:0;transform:scale(.34) rotate(-12deg);
+  animation:burst .5s cubic-bezier(.15,.85,.3,1) .05s forwards, raydrift 9s linear .55s infinite}
+@keyframes burst{60%{opacity:1}100%{opacity:.6;transform:scale(1) rotate(0deg)}}
+@keyframes raydrift{to{transform:rotate(360deg)}}
+
 #fire .inner{position:relative}
-.flame{width:165px;height:194px;display:block;margin:0 auto;
-  filter:drop-shadow(0 14px 22px rgba(255,122,41,.42));animation:breathe 1.5s ease-in-out infinite}
-@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
-#fire h2{margin:6px 0 4px;font-size:29px;color:var(--navy);letter-spacing:-.8px}
-#fire p{margin:0;color:var(--blue-2);font-weight:700}
+
+/* the ignition: a spark, then it climbs into a full flame */
+.flamewrap{position:relative;width:218px;height:212px;margin:0 auto;
+  animation:ignite .72s cubic-bezier(.2,.9,.25,1) both}
+@keyframes ignite{
+  0%{transform:scale(.05) translateY(46px);opacity:0}
+  14%{transform:scale(.2) translateY(34px) rotate(-4deg);opacity:1}
+  38%{transform:scale(.62) translateY(12px) rotate(3deg)}
+  68%{transform:scale(1.12) translateY(-4px) rotate(-2deg)}
+  86%{transform:scale(.95) translateY(2px) rotate(1deg)}
+  100%{transform:scale(1) translateY(0) rotate(0deg)}}
+
+.flame{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+  filter:drop-shadow(0 10px 26px rgba(255,116,20,.5));
+  animation:sway 2.9s ease-in-out .7s infinite}
+@keyframes sway{0%{transform:rotate(0deg) translateX(0)}
+  28%{transform:rotate(2.4deg) translateX(4px)}
+  53%{transform:rotate(-1.2deg) translateX(-2px)}
+  74%{transform:rotate(1.6deg) translateX(3px)}
+  100%{transform:rotate(0deg) translateX(0)}}
+
+/* four layers, each leaning a different way on its own clock */
+.fl{transform-box:fill-box}
+.fl-out{transform-origin:47% 100%;animation:flick1 .53s ease-in-out -.07s infinite alternate}
+.fl-mid{transform-origin:55% 100%;animation:flick2 .41s ease-in-out -.19s infinite alternate}
+.fl-in{transform-origin:44% 100%;animation:flick3 .29s ease-in-out -.05s infinite alternate}
+.fl-core{transform-origin:53% 100%;animation:flick4 .23s ease-in-out -.11s infinite alternate}
+/* four uneven stops each, so no layer ever traces the same shape twice */
+@keyframes flick1{0%{transform:scale(1.22,.95) rotate(-2.6deg) translateX(-1%)}
+  34%{transform:scale(1.1,1.06) rotate(.8deg) translateX(2%)}
+  67%{transform:scale(1.26,.99) rotate(-1.4deg) translateX(-2%)}
+  100%{transform:scale(1.12,1.12) rotate(2.2deg) translateX(3%)}}
+@keyframes flick2{0%{transform:scale(.98,.7) rotate(3.6deg) translateX(4%)}
+  30%{transform:scale(.86,.83) rotate(-1.6deg) translateX(-1%)}
+  72%{transform:scale(1.02,.75) rotate(2.4deg) translateX(3%)}
+  100%{transform:scale(.84,.88) rotate(-3deg) translateX(-3%)}}
+@keyframes flick3{0%{transform:scale(.64,.4) rotate(-5deg) translateX(-4%)}
+  41%{transform:scale(.54,.55) rotate(2.2deg) translateX(2%)}
+  78%{transform:scale(.66,.45) rotate(-2.6deg) translateX(-2%)}
+  100%{transform:scale(.52,.6) rotate(4deg) translateX(3%)}}
+@keyframes flick4{0%{transform:scale(.32,.17) translate(3%,-4%);opacity:.62}
+  45%{transform:scale(.24,.26) translate(-2%,-10%);opacity:1}
+  100%{transform:scale(.3,.2) translate(2%,-6%);opacity:.8}}
+
+/* tongues that break off the top and burn out, the way a real flame sheds */
+.flare{position:absolute;pointer-events:none;
+  border-radius:50% 50% 44% 44%/64% 64% 36% 36%;
+  background:linear-gradient(180deg,#ffe08a,#ff8f33 55%,rgba(255,110,20,.25));
+  box-shadow:0 0 16px rgba(255,150,50,.75)}
+
+/* and it snuffs out rather than simply vanishing */
+#fire.out .flamewrap{animation:snuff .48s cubic-bezier(.45,0,.9,.55) forwards}
+@keyframes snuff{0%{transform:scale(1)}
+  28%{transform:scale(1.16,.82) rotate(-3deg)}
+  58%{transform:scale(.7,1.05) rotate(2deg) translateY(-8px)}
+  100%{transform:scale(.05,.34) translateY(30px);opacity:0}}
+#fire.out .fglow{animation:none;opacity:0;transform:scale(.45);transition:opacity .34s ease,transform .34s ease}
+#fire.out .rays{animation:none;opacity:0;transform:scale(1.16);transition:opacity .3s ease,transform .3s ease}
+#fire.out .fnum,#fire.out h2,#fire.out p,#fire.out .btn{animation:none;opacity:0;transition:opacity .22s ease}
+
+.fnum{position:absolute;left:0;right:0;top:47%;font-size:62px;font-weight:800;color:#fff;
+  letter-spacing:-3px;line-height:1;font-variant-numeric:tabular-nums;
+  text-shadow:0 3px 14px rgba(178,60,0,.55), 0 0 22px rgba(255,190,90,.7);
+  opacity:0;animation:numin .3s ease .34s forwards}
+@keyframes numin{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+.fnum.beat{animation:beat .3s cubic-bezier(.2,1.7,.35,1)}
+@keyframes beat{0%{transform:scale(1)}38%{transform:scale(1.32) rotate(-2deg)}100%{transform:scale(1) rotate(0)}}
+
+.embers{position:absolute;inset:-30px -44px 0;pointer-events:none}
+.ember{position:absolute;bottom:34%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(circle at 40% 35%,#fff3c4,#ff9a2e 55%,rgba(255,110,20,0));
+  box-shadow:0 0 8px rgba(255,160,60,.9)}
+
+#fire h2{margin:6px 0 4px;font-size:30px;color:#a8431a;letter-spacing:-.8px;
+  animation:risein .38s ease .3s both}
+#fire p{margin:0;color:#c2703c;font-weight:700;animation:risein .38s ease .38s both}
+#fire .btn{animation:risein .38s ease .46s both;border-color:#e0793a;color:#a8431a;
+  box-shadow:0 0 0 4px rgba(255,150,70,.14), 0 0 18px rgba(255,140,50,.4), inset 0 0 14px rgba(255,200,140,.4)}
+@keyframes risein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .streakline{display:inline-flex;align-items:center;gap:5px;font-weight:800;font-size:13.5px;color:#e8721b}
 
 /* ---------- nav ---------- */
@@ -311,28 +394,30 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
     <rect x="24" y="78" width="52" height="11" rx="5.5" fill="#e59a10"/>
   </symbol>
 
-  <!-- flame -->
-  <symbol id="flame" viewBox="0 0 100 120">
-    <path fill="url(#g-flame)" d="M52 2c7 19 20 27 27 40 6 12 9 22 9 33 0 25-18 43-38 43S12 100 12 75c0-15 6-26 14-35 3 6 6 10 10 12-3-17 9-36 16-50z"/>
-    <path fill="url(#g-flame2)" opacity=".92" d="M53 40c5 11 14 18 14 32 0 15-9 25-20 25s-20-10-20-25c0-10 5-17 11-23 1 5 3 7 6 9-1-7 5-13 9-18z"/>
-  </symbol>
+  <!-- flame outline, reused at four scales for the layered fire -->
+  <path id="flamepath" d="M52 2c7 19 20 27 27 40 6 12 9 22 9 33 0 25-18 43-38 43S12 100 12 75c0-15 6-26 14-35 3 6 6 10 10 12-3-17 9-36 16-50z"/>
 </defs></svg>
 
 <!-- ================= STREAK ================= -->
 <div id="fire" onclick="closeFire()">
-  <div class="rays"></div>
-  <svg class="dashes" viewBox="0 0 300 300" fill="none" stroke="#9ccdf3" stroke-width="5" stroke-linecap="round" opacity=".65">
-    <path d="M150 6v22M150 272v22M6 150h22M272 150h22M48 48l16 16M236 236l16 16M252 48l-16 16M64 236l-16 16"/>
+  <div class="fglow"></div>
+  <svg class="rays" viewBox="0 0 300 300" fill="none" stroke="#ffb054" stroke-linecap="round">
+    <path d="M214 147L255 145" stroke-width="3.4" opacity="0.7"/><path d="M215 170L234 176" stroke-width="5.2" opacity="0.4"/><path d="M205 197L222 212" stroke-width="4.1" opacity="0.76"/><path d="M166 215L179 266" stroke-width="3.2" opacity="0.91"/><path d="M148 213L147 242" stroke-width="7.1" opacity="0.47"/><path d="M111 204L89 235" stroke-width="3.3" opacity="0.39"/><path d="M94 187L69 203" stroke-width="5.9" opacity="0.64"/><path d="M81 162L54 166" stroke-width="5.9" opacity="0.69"/><path d="M89 126L39 107" stroke-width="3.6" opacity="0.62"/><path d="M100 104L86 90" stroke-width="6.3" opacity="0.85"/><path d="M139 85L131 43" stroke-width="6.0" opacity="0.73"/><path d="M168 79L177 45" stroke-width="6.3" opacity="0.39"/><path d="M198 94L229 58" stroke-width="4.4" opacity="0.6"/><path d="M209 116L229 104" stroke-width="3.6" opacity="0.39"/>
   </svg>
   <div class="inner">
-    <div style="position:relative">
-      <svg class="flame"><use href="#flame"/></svg>
-      <div id="firenum" style="position:absolute;left:0;right:0;top:45%;line-height:1;font-size:46px;font-weight:800;color:#fff;
-        text-shadow:0 3px 10px rgba(190,60,0,.4);letter-spacing:-2px">3</div>
+    <div class="flamewrap">
+      <div class="embers" id="embers"></div>
+      <svg class="flame" viewBox="0 0 100 120">
+        <g class="fl fl-out"><use href="#flamepath" fill="url(#g-flame)"/></g>
+        <g class="fl fl-mid"><use href="#flamepath" fill="url(#g-flame2)"/></g>
+        <g class="fl fl-in"><use href="#flamepath" fill="#ffe6a0"/></g>
+        <g class="fl fl-core"><use href="#flamepath" fill="#fffbe8"/></g>
+      </svg>
+      <div class="fnum" id="firenum">3</div>
     </div>
     <h2 id="firetitle">3 Win Streak!</h2>
     <p id="firesub">You've won 3 games in a row!</p>
-    <button class="btn" style="margin-top:20px;padding:14px 34px" onclick="event.stopPropagation();closeFire()">Keep it going</button>
+    <button class="btn" style="margin-top:16px;padding:14px 34px" onclick="event.stopPropagation();closeFire()">Keep it going</button>
   </div>
 </div>
 
@@ -581,6 +666,55 @@ function pop(freq, vol, at, spread){
     s.connect(bp).connect(ng).connect(c.destination); s.start(t);
   }
 }
+/* Fire: a soft whoosh as it catches, then scattered crackles. Kept well under
+   the music so it reads as texture rather than noise. */
+let fireBuf = null;
+function longNoise(){
+  const c = ac(); if(!c) return null;
+  if(!fireBuf){
+    const n = Math.floor(c.sampleRate * 2.4);
+    fireBuf = c.createBuffer(1, n, c.sampleRate);
+    const d = fireBuf.getChannelData(0);
+    let last = 0;
+    for(let i=0;i<n;i++){ const w = Math.random()*2-1; last = (last + .02*w)/1.02; d[i] = last*3.2; }
+  }
+  return fireBuf;
+}
+function fireSound(){
+  const c = ac(); if(!c || !soundOn) return;
+  const t = c.currentTime;
+  const b = longNoise(); if(!b) return;
+
+  // the whoosh of it catching
+  const s1 = c.createBufferSource(); s1.buffer = b; s1.playbackRate.value = .95;
+  const bp = c.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = .75;
+  bp.frequency.setValueAtTime(260, t);                   // catches low, flares up fast
+  bp.frequency.exponentialRampToValueAtTime(1700, t + .34);
+  bp.frequency.exponentialRampToValueAtTime(520, t + 2.1);
+  const g1 = c.createGain();
+  g1.gain.setValueAtTime(.0001, t);
+  g1.gain.exponentialRampToValueAtTime(.18, t + .2);
+  g1.gain.setValueAtTime(.18, t + 1.1);
+  g1.gain.exponentialRampToValueAtTime(.0004, t + 2.7);
+  s1.connect(bp).connect(g1).connect(c.destination);
+  s1.start(t); s1.stop(t + 2.8);
+
+  // crackles, thickest right after it catches
+  const tick = noise();
+  if (tick) for (let i = 0; i < 20; i++) {
+    const at = t + .12 + Math.pow(Math.random(), 1.5) * 2.2;
+    const s = c.createBufferSource(); s.buffer = tick;
+    s.playbackRate.value = .6 + Math.random() * 1.4;
+    const hp = c.createBiquadFilter(); hp.type = 'bandpass';
+    hp.frequency.value = 1800 + Math.random() * 3200; hp.Q.value = 2.4;
+    const g = c.createGain();
+    const v = .02 + Math.random() * .05;
+    g.gain.setValueAtTime(v, at);
+    g.gain.exponentialRampToValueAtTime(.0002, at + .02 + Math.random() * .04);
+    s.connect(hp).connect(g).connect(c.destination);
+    s.start(at);
+  }
+}
 function sfx(kind){
   if (!soundOn) return;
   if (kind === 'tap')        pop(480, .13);
@@ -655,7 +789,7 @@ function toast(msg){
 }
 
 /* ================= helpers ================= */
-const VERSION = 'v2.2';
+const VERSION = 'v2.5';
 const $ = s => document.querySelector(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* run an async action with a highlight sweeping across the button that started it */
@@ -1458,26 +1592,135 @@ async function deleteAccount(){
 }
 
 /* ================= STREAK CELEBRATION ================= */
-let fireTimer = null;
+let fireTimer = null, emberTimer = null, flareTimer = null;
+function spawnEmber(scale){
+  const box = $('#embers');
+  if (!box || !document.body.animate) return;
+  const el = document.createElement('div');
+  el.className = 'ember';
+  const k = scale === undefined ? 1 : scale;
+  const size = (2 + Math.random() * 6) * (.45 + k * .55);
+  el.style.width = size + 'px';
+  el.style.height = size + 'px';
+  // lean right, matching the way the flame sways
+  el.style.left = (24 + Math.pow(Math.random(), .8) * 58) + '%';
+  box.appendChild(el);
+  const rise = (70 + Math.random() * 160) * (.5 + k * .5);
+  const drift = 10 + Math.random() * 55 - (Math.random() < .3 ? 70 : 0);
+  const a = el.animate([
+    { transform: 'translate(0,0) scale(1)', opacity: 0 },
+    { opacity: .95, offset: .16 },
+    { transform: `translate(${drift}px, ${-rise}px) scale(.18) rotate(${drift}deg)`, opacity: 0 }
+  ], { duration: 800 + Math.random() * 800, easing: 'cubic-bezier(.25,.6,.45,1)' });
+  a.onfinish = () => el.remove();
+}
+/* counts up from zero, quick off the line and easing into the final number */
+let countTimers = [];
+function spawnFlare(big){
+  const box = $('#embers');
+  if (!box || !document.body.animate) return;
+  const el = document.createElement('div');
+  el.className = 'flare';
+  const w = (9 + Math.random() * 16) * (big ? 1.5 : 1);
+  el.style.width = w + 'px';
+  el.style.height = (w * (1.5 + Math.random())) + 'px';
+  el.style.left = (30 + Math.random() * 46) + '%';
+  el.style.bottom = (52 + Math.random() * 12) + '%';
+  box.appendChild(el);
+  const rise = (55 + Math.random() * 90) * (big ? 1.4 : 1);
+  const drift = (Math.random() * 2 - 1) * 34 + 8;
+  const spin = (Math.random() * 2 - 1) * 26;
+  const a = el.animate([
+    { transform: 'translate(0,0) scale(1,1) rotate(0deg)', opacity: 0 },
+    { opacity: .95, offset: .2 },
+    { transform: `translate(${drift*.5}px,${-rise*.55}px) scale(.7,1.25) rotate(${spin*.5}deg)`, opacity: .8, offset: .6 },
+    { transform: `translate(${drift}px,${-rise}px) scale(.12,.5) rotate(${spin}deg)`, opacity: 0 }
+  ], { duration: 480 + Math.random() * 460, easing: 'cubic-bezier(.3,.55,.5,1)' });
+  a.onfinish = () => el.remove();
+}
+function countTo(n){
+  const el = $('#firenum');
+  countTimers.forEach(clearTimeout);
+  countTimers = [];
+  el.textContent = 0;
+  if (n <= 0) return;
+  const total = Math.min(1450, 500 + n * 70);
+  const voice = n <= 14 ? 1 : Math.ceil(n / 12);   // don't machine-gun the sound on long streaks
+  for (let k = 1; k <= n; k++) {
+    const at = total * Math.pow(k / n, 1.9);       // spacing widens as it approaches
+    countTimers.push(setTimeout(() => {
+      el.textContent = k;
+      el.classList.remove('beat');
+      void el.offsetWidth;
+      el.classList.add('beat');
+      if (soundOn && (k % voice === 0 || k === n)) pop(520 + (k / n) * 620, k === n ? .16 : .09, 0, .03);
+    }, at));
+  }
+}
 function showFire(n){
-  $('#firenum').textContent = n;
   $('#firetitle').textContent = `${n} Win Streak!`;
   $('#firesub').textContent = `You've won ${n} games in a row!`;
+  $('#firenum').textContent = 0;   // the count-up always starts from zero
   const box = $('#fire');
+  const embers = $('#embers');
+  if (embers) embers.innerHTML = '';
+  box.classList.remove('out');
   box.classList.add('on');
   requestAnimationFrame(() => box.classList.add('vis'));
+
+  fireSound();
   sfx('streak');
-  flyBall(720);
-  setTimeout(() => flyBall(760), 260);
-  if (navigator.vibrate) navigator.vibrate([18, 40, 18, 40, 30]);
+  setTimeout(() => countTo(n), 360);
+
+  // embers ramp up with the flame rather than arriving fully formed
+  clearInterval(emberTimer); clearInterval(flareTimer);
+  let grow = 0;
+  emberTimer = setInterval(() => {
+    grow = Math.min(1, grow + .11);
+    spawnEmber(grow);
+    if (grow > .5 && Math.random() < .55) spawnEmber(grow);
+  }, 90);
+  flareTimer = setInterval(() => { if (Math.random() < .7) spawnFlare(); }, 240);
+  setTimeout(() => spawnFlare(), 260);
+
+  if (navigator.vibrate) navigator.vibrate([10, 30, 16, 34, 28, 50, 44]);
   clearTimeout(fireTimer);
-  fireTimer = setTimeout(closeFire, 5200);
+  fireTimer = setTimeout(closeFire, 4300);
+}
+function snuffSound(){
+  const c = ac(); if(!c || !soundOn) return;
+  const b = longNoise(); if(!b) return;
+  const t = c.currentTime;
+  const s = c.createBufferSource(); s.buffer = b; s.playbackRate.value = 1.15;
+  const lp = c.createBiquadFilter(); lp.type = 'lowpass';
+  lp.frequency.setValueAtTime(1800, t);
+  lp.frequency.exponentialRampToValueAtTime(260, t + .42);
+  const g = c.createGain();
+  g.gain.setValueAtTime(.13, t);
+  g.gain.exponentialRampToValueAtTime(.0004, t + .5);
+  s.connect(lp).connect(g).connect(c.destination);
+  s.start(t); s.stop(t + .55);
 }
 function closeFire(){
   clearTimeout(fireTimer);
+  clearInterval(emberTimer);
+  clearInterval(flareTimer);
+  countTimers.forEach(clearTimeout);
+  countTimers = [];
   const box = $('#fire');
-  box.classList.remove('vis');
-  setTimeout(() => box.classList.remove('on'), 420);
+  if (!box.classList.contains('on') || box.classList.contains('out')) return;
+  box.classList.add('out');
+  snuffSound();
+  // one last gasp of embers and tongues as it dies
+  for (let i = 0; i < 4; i++) setTimeout(() => spawnFlare(true), i * 55);
+  for (let i = 0; i < 10; i++) setTimeout(() => spawnEmber(1), i * 26);
+  setTimeout(() => box.classList.remove('vis'), 300);
+  setTimeout(() => {
+    box.classList.remove('on');
+    box.classList.remove('out');
+    const e = $('#embers');
+    if (e) e.innerHTML = '';
+  }, 780);
 }
 
 /* ================= input wiring ================= */
