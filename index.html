@@ -502,6 +502,15 @@ nav.tabs .inner{max-width:440px;margin:0 auto;display:flex;width:100%}
   <div id="gameBody"></div>
 </section>
 
+<!-- ================= REVIEW ================= -->
+<section class="screen" id="s-review">
+  <div class="apphead">
+    <button class="back" onclick="go('home')">‹</button>
+    <div class="ttl">Review game</div><div class="spacer"></div>
+  </div>
+  <div id="reviewBody"></div>
+</section>
+
 <!-- ================= PROFILE ================= -->
 <section class="screen" id="s-profile">
   <div class="apphead">
@@ -803,7 +812,7 @@ function toast(msg){
 }
 
 /* ================= helpers ================= */
-const VERSION = 'v2.7';
+const VERSION = 'v2.8';
 const $ = s => document.querySelector(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* run an async action with a highlight sweeping across the button that started it */
@@ -972,6 +981,10 @@ async function refreshMe(){
 async function tick(){
   if (busy || !me) return;
   await refreshMe();
+  if (activeGame && activeGame.status === 'done') {
+    if (activeGame.next) { await adoptRematch(activeGame.next); return; }
+    if (activeGame.rmA && activeGame.rmB && activeGame.aLower === me.lower) { await startRematch(activeGame); return; }
+  }
   if (activeGame && activeGame.status !== lastStatus) {
     if (activeGame.status === 'active' && lastStatus === 'pending') { go('games'); matchIntro(); }
     lastStatus = activeGame.status;
@@ -983,7 +996,8 @@ async function tick(){
   }
   if (view === 'home') renderHome();
   else if (view === 'friends') renderFriends();
-  else if (view === 'games') renderGame();
+  else if (view === 'games') { if (!paintScore()) renderGame(); }
+  else if (view === 'review') renderReview();
   updateDots();
 }
 function updateDots(){
@@ -1028,31 +1042,15 @@ function renderHome(){
     <button class="btn block ghost" onclick="go('friends')">Add Friends</button>`;
 
   if (me.reviews.length) {
-    h += `<h3 class="sec">Scores to confirm</h3>`;
+    h += `<h3 class="sec">Games to review</h3>`;
     me.reviews.forEach(rv => {
-      const editing = ed.id === rv.gameId;
-      h += `<div class="card">
-        <div class="row">${av(rv.fromName,'',rv.from)}
-          <div class="grow trunc">
-            <div class="name trunc">${esc(rv.fromName)} ${rv.edited ? 'changed the score' : 'logged a match'}</div>
-            <div class="dim">${ago(rv.at)}${rv.edited ? ' · needs your OK again' : ' · check it before it counts'}</div>
-          </div></div>
-        ${editing
-          ? `<div class="row" style="gap:10px;margin-top:12px">
-               ${stepper('You', ed.my, "adjEd('my',-1)", "adjEd('my',1)")}
-               ${stepper(esc(rv.fromName), ed.their, "adjEd('their',-1)", "adjEd('their',1)")}
-             </div>
-             <button class="btn block" style="margin-top:12px" ${ed.my===ed.their?'disabled':''}
-               onclick="load(this,()=>sendEdit('${esc(rv.gameId)}'))">Send back to ${esc(rv.fromName)}</button>
-             <button class="btn block quiet" style="margin-top:4px" onclick="cancelEdit()">Cancel</button>`
-          : `<div class="reportline"><span>You</span><b>${rv.mine} - ${rv.theirs}</b><span>${esc(rv.fromName)}</span></div>
-             <div class="row" style="gap:8px;margin-top:12px">
-               <button class="btn grow" onclick="load(this,()=>confirmReport('${esc(rv.gameId)}'))">Looks right</button>
-               <button class="btn ghost" onclick="startEdit('${esc(rv.gameId)}')">Edit</button>
-             </div>
-             <button class="btn block quiet" style="margin-top:4px"
-               onclick="load(this,()=>declineReport('${esc(rv.gameId)}'))">We never played this</button>`}
-      </div>`;
+      h += `<div class="card"><div class="row">${av(rv.fromName,'',rv.from)}
+        <div class="grow trunc">
+          <div class="name trunc">${esc(rv.fromName)} ${rv.edited ? 'changed the score' : 'added a game'}</div>
+          <div class="dim">${ago(rv.at)} · ${rv.edited ? 'needs your OK again' : 'check it before it counts'}</div>
+        </div>
+        <button class="chip" onclick="openReview('${esc(rv.gameId)}')">Review</button>
+      </div></div>`;
     });
   }
 
@@ -1347,18 +1345,39 @@ function applyPoint(g, side, delta){
   g.rev = (g.rev || 0) + 1;
   return g;
 }
+/* repaint only the two numbers and the button state, so a tap lands instantly
+   instead of waiting on a full rebuild of the scoreboard */
+function paintScore(){
+  const g = activeGame;
+  if (!g || g.status !== 'active' || view !== 'games') return false;
+  const nums = document.querySelectorAll('#gameBody .scorecard b');
+  if (nums.length < 2) return false;
+  const opp = oppOf(g);
+  nums[0].textContent = opp.meIsA ? g.sa : g.sb;
+  nums[1].textContent = opp.meIsA ? g.sb : g.sa;
+  const ws = winState(g);
+  const hint = document.getElementById('matchHint');
+  if (hint) hint.textContent = ws === 'over' ? 'Match complete'
+    : ws === 'point' ? 'Match point!' : 'First to 11, win by 2';
+  const note = document.getElementById('matchNote');
+  if (note) note.textContent = ws === 'over' ? 'Tap Finish Match to log it.'
+    : "Tap a player's card to give them the point.";
+  const fin = document.getElementById('finishBtn');
+  if (fin) { if (ws === 'over') fin.removeAttribute('disabled'); else fin.setAttribute('disabled',''); }
+  return true;
+}
 function bump(side, delta){
   if (!activeGame || activeGame.status !== 'active') return;
   const id = activeGame.id;
   applyPoint(activeGame, side, delta);
-  renderGame();
+  if (!paintScore()) renderGame();
   return queue(async () => {
     busy = true;
     const fresh = await getGame(id);
     if (fresh && fresh.status === 'active') {
       applyPoint(fresh, side, delta);
       await S.set(GK(id), fresh);
-      if (activeGame && activeGame.id === id) { activeGame = fresh; renderGame(); }
+      if (activeGame && activeGame.id === id) { activeGame = fresh; if (!paintScore()) renderGame(); }
     }
     busy = false;
   });
@@ -1387,10 +1406,11 @@ function renderGame(){
     </div>
     <button class="btn block" id="sendInvite" disabled onclick="load(this,()=>sendInvite())">Send Invite</button>
 
-    <h3 class="sec">Already played?</h3>
+    <h3 class="sec">Add a new game</h3>
     <div class="card">
       <div class="dim" style="text-align:center;margin-bottom:12px">
-        Type the result and send it over. It only counts once they agree.
+        Already played somewhere else? Type the result and send it over.
+        It only counts once they've reviewed it.
       </div>
       <div id="reportBox"></div>
     </div>`;
@@ -1445,10 +1465,10 @@ function renderGame(){
         <button class="minus" onclick="event.stopPropagation();bump('${theirSide}',-1)">−</button>
       </div>
     </div>
-    <div class="tablecard"><div class="hint">${hint}</div>
+    <div class="tablecard"><div class="hint" id="matchHint">${hint}</div>
       <svg viewBox="0 0 320 200"><use href="#table"/></svg></div>
-    <div class="dim center" style="margin-bottom:12px">Tap a player's card to give them the point.</div>
-    <button class="btn block" ${g.sa===g.sb?'disabled':''} onclick="load(this,()=>finishMatch())">Finish Match</button>
+    <div class="dim center" id="matchNote" style="margin-bottom:12px">${ws==='over' ? 'Tap Finish Match to log it.' : "Tap a player's card to give them the point."}</div>
+    <button class="btn block" id="finishBtn" ${ws==='over'?'':'disabled'} onclick="load(this,()=>finishMatch())">Finish Match</button>
     <button class="btn block quiet" style="margin-top:6px" onclick="load(this,()=>cancelGame())">End Game</button>`;
 }
 function renderInviteList(){
@@ -1480,7 +1500,7 @@ function renderReportBox(){
       <div class="row grow" style="min-width:0">${av(nameOf(f),'sm',f)}
         <div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(nameOf(f))}</div>
         <div class="dim trunc">@${esc(f)}</div></div></div>
-      <button class="chip" onclick="pickReport('${esc(f)}')">Report</button></div>`).join('');
+      <button class="chip" onclick="pickReport('${esc(f)}')">Add</button></div>`).join('');
     return;
   }
   const name = esc(nameOf(repTarget));
@@ -1489,14 +1509,83 @@ function renderReportBox(){
       ${stepper(name, rep_.their, "adjRep('their',-1)", "adjRep('their',1)")}
     </div>
     <button class="btn block" style="margin-top:12px" ${rep_.my===rep_.their?'disabled':''}
-      onclick="load(this,()=>sendReport())">Send to ${name} to confirm</button>
+      onclick="load(this,()=>sendReport())">Send to ${name} to review</button>
     <button class="btn block quiet" style="margin-top:4px" onclick="pickReport('${esc(repTarget)}')">Pick someone else</button>`;
+}
+/* ---- reviewing a game someone added ---- */
+let reviewId = null;
+function openReview(id){
+  reviewId = id;
+  const rv = me.reviews.find(r => r.gameId === id);
+  ed = { id: null, my: rv ? rv.mine : 0, their: rv ? rv.theirs : 0 };
+  view = 'review';
+  show('s-review');
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('on', t.dataset.tab === 'home'));
+  $('#reviewBody').innerHTML = `<div class="card"><div class="empty">Loading…</div></div>`;
+  renderReview();
+}
+async function renderReview(){
+  const rv = me.reviews.find(r => r.gameId === reviewId);
+  if (!rv) {
+    $('#reviewBody').innerHTML = `<div class="card"><div class="empty">This game is no longer waiting on you.</div>
+      <button class="btn block" onclick="go('home')">Back to Home</button></div>`;
+    return;
+  }
+  const them = await getUser(rv.from);
+  const editing = ed.id === reviewId;
+  const h2h = me.matches.filter(m => m.opp === rv.from);
+  const h2hW = h2h.filter(m => m.won).length;
+  const iWin = rv.mine > rv.theirs;
+
+  $('#reviewBody').innerHTML = `
+    <div class="card center">
+      <div class="dim">${esc(rv.fromName)} says this is how it went</div>
+      <div class="row" style="justify-content:center;gap:16px;margin:14px 0 6px">
+        <div style="text-align:center">${av(me.username,'',me.lower)}<div class="dim" style="margin-top:5px">You</div></div>
+        <div class="name" style="font-size:38px;letter-spacing:-2px;font-variant-numeric:tabular-nums">${rv.mine} - ${rv.theirs}</div>
+        <div style="text-align:center">${av(rv.fromName,'',rv.from)}<div class="dim trunc" style="margin-top:5px;max-width:74px">${esc(rv.fromName)}</div></div>
+      </div>
+      <div class="pill ${iWin ? 'w' : 'l'}">${iWin ? 'Logs as a win for you' : 'Logs as a loss for you'}</div>
+      ${rv.edited ? `<div class="dim" style="margin-top:8px">They changed the score you sent. Check it again.</div>` : ''}
+    </div>
+
+    <div class="card">
+      <div class="dim" style="font-weight:800;margin-bottom:8px">If you log this</div>
+      <div class="stats">
+        <div class="stat"><b>${me.wins + (iWin ? 1 : 0)}</b><span>Your wins</span></div>
+        <div class="stat"><b class="${iWin ? 'wv' : 'lv'}">${iWin ? me.streak + 1 : 0}</b><span>Your streak</span></div>
+        <div class="stat"><b>${h2hW + (iWin ? 1 : 0)} - ${h2h.length - h2hW + (iWin ? 0 : 1)}</b><span>vs ${esc(rv.fromName)}</span></div>
+      </div>
+      ${them ? `<div class="dim" style="text-align:center;margin-top:10px">
+        ${esc(them.username)} is ${them.wins}W-${them.losses}L${them.streak >= 3 ? ` · on a ${them.streak} streak` : ''}</div>` : ''}
+    </div>
+
+    ${editing
+      ? `<div class="card">
+           <div class="dim" style="font-weight:800;text-align:center;margin-bottom:10px">Fix the score</div>
+           <div class="row" style="gap:10px">
+             ${stepper('You', ed.my, "adjEd('my',-1)", "adjEd('my',1)")}
+             ${stepper(esc(rv.fromName), ed.their, "adjEd('their',-1)", "adjEd('their',1)")}
+           </div>
+           <button class="btn block" style="margin-top:12px" ${ed.my === ed.their ? 'disabled' : ''}
+             onclick="load(this,()=>sendEdit('${esc(reviewId)}'))">Send back to ${esc(rv.fromName)}</button>
+           <button class="btn block quiet" style="margin-top:4px" onclick="cancelEdit()">Cancel</button>
+         </div>`
+      : `<button class="btn block" onclick="load(this,()=>confirmReport('${esc(reviewId)}'))">Log this game</button>
+         <button class="btn block ghost" style="margin-top:8px" onclick="startEdit('${esc(reviewId)}')">Edit the score</button>
+         <button class="btn block quiet" style="margin-top:4px"
+           onclick="load(this,()=>declineReport('${esc(reviewId)}'))">We never played this</button>`}`;
 }
 function pickFriend(f){ inviteSel = (inviteSel === f ? null : f); renderInviteList(); }
 function sendInvite(){ return inviteSel ? invite(inviteSel) : null; }
 
 async function finishMatch(){
-  if (!activeGame || activeGame.sa === activeGame.sb) return;
+  if (!activeGame) return;
+  if (winState(activeGame) !== 'over') {
+    toast('First to 11, and two points clear');
+    sfx('error');
+    return;
+  }
   await chain;
   busy = true;
   const g = (await getGame(activeGame.id)) || activeGame;
@@ -1523,7 +1612,13 @@ function renderFinished(g){
     ${logged
       ? `<button class="btn block" onclick="endGame()">Back to Home</button>
          <button class="btn block ghost" style="margin-top:8px" onclick="openProfile('${esc(opp.lower)}','games')">View Match Details</button>
-         <button class="btn block quiet" style="margin-top:4px" onclick="load(this,()=>rematch('${esc(opp.lower)}'))">Rematch</button>`
+         ${(() => {
+             const iWant = opp.meIsA ? g.rmA : g.rmB;
+             const theyWant = opp.meIsA ? g.rmB : g.rmA;
+             if (iWant) return `<button class="btn block quiet" style="margin-top:4px" disabled>Waiting for ${esc(opp.name)} to tap Rematch…</button>`;
+             return `<button class="btn block ${theyWant ? '' : 'quiet'}" style="margin-top:4px"
+               onclick="load(this,()=>askRematch())">${theyWant ? esc(opp.name) + ' wants a rematch — join' : 'Rematch'}</button>`;
+           })()}`
       : `<button class="btn block" onclick="load(this,()=>logResult())">Log Score</button>
          <button class="btn block ghost" style="margin-top:8px" onclick="openProfile('${esc(opp.lower)}','games')">View Match Details</button>
          <button class="btn block quiet" style="margin-top:4px" onclick="load(this,()=>reopenMatch())">Fix the score</button>`}
@@ -1538,6 +1633,42 @@ async function reopenMatch(){
   renderGame();
 }
 async function endGame(){ activeGame = null; lastStatus = null; await S.set('pp:active', null, false); go('home'); }
+
+/* ---- rematch: it starts by itself once both players have asked for one ---- */
+async function askRematch(){
+  if (!activeGame || activeGame.status !== 'done') return;
+  busy = true;
+  const g = (await getGame(activeGame.id)) || activeGame;
+  const meIsA = g.aLower === me.lower;
+  if (meIsA) g.rmA = true; else g.rmB = true;
+  g.rev = (g.rev || 0) + 1;
+  await S.set(GK(g.id), g);
+  activeGame = g;
+  busy = false;
+  sfx('sent');
+  renderGame();
+  if (g.rmA && g.rmB) await startRematch(g);
+  else toast('Rematch asked for');
+}
+async function startRematch(g){
+  // only the player who sent the original invite creates it, so it is made once
+  if (g.aLower !== me.lower || g.next) return;
+  const id = g.aLower + '-' + Date.now().toString(36);
+  const next = { id, aLower:g.aLower, aName:g.aName, bLower:g.bLower, bName:g.bName,
+    sa:0, sb:0, status:'active', rev:1, created:Date.now() };
+  await S.set(GK(id), next);
+  g.next = id; g.rev++;
+  await S.set(GK(g.id), g);
+  await adoptRematch(id);
+}
+async function adoptRematch(id){
+  const next = await getGame(id);
+  if (!next || next.status !== 'active') return;
+  activeGame = next; lastStatus = 'active';
+  await S.set('pp:active', id, false);
+  go('games');
+  matchIntro();
+}
 async function rematch(lower){ activeGame = null; lastStatus = null; await S.set('pp:active', null, false); await invite(lower); }
 async function cancelGame(){
   if (!activeGame) { go('home'); return; }
@@ -1581,7 +1712,7 @@ let repTarget = null, rep_ = { my: 0, their: 0 }, ed = { id: null, my: 0, their:
 
 function pickReport(f){ repTarget = (repTarget === f ? null : f); rep_ = { my: 0, their: 0 }; renderGame(); }
 function adjRep(k, d){ rep_[k] = Math.max(0, rep_[k] + d); renderGame(); }
-function adjEd(k, d){ ed[k] = Math.max(0, ed[k] + d); renderHome(); }
+function adjEd(k, d){ ed[k] = Math.max(0, ed[k] + d); renderReview(); }
 function stepper(label, val, onMinus, onPlus){
   return `<div class="stepper"><div class="who">${label}</div>
     <div class="row" style="justify-content:center;gap:6px">
@@ -1605,7 +1736,7 @@ async function sendReport(){
   busy = false;
   repTarget = null; rep_ = { my: 0, their: 0 };
   sfx('sent');
-  toast(`Sent to ${them.username} to confirm`);
+  toast(`Sent to ${them.username} to review`);
   renderGame();
 }
 
@@ -1613,9 +1744,13 @@ function startEdit(id){
   const rv = me.reviews.find(r => r.gameId === id);
   if (!rv) return;
   ed = { id, my: rv.mine, their: rv.theirs };
-  renderHome();
+  renderReview();
 }
-function cancelEdit(){ ed = { id: null, my: 0, their: 0 }; renderHome(); }
+function cancelEdit(){
+  const rv = me.reviews.find(r => r.gameId === reviewId);
+  ed = { id: null, my: rv ? rv.mine : 0, their: rv ? rv.theirs : 0 };
+  renderReview();
+}
 
 async function sendEdit(id){
   if (ed.my === ed.their) { toast('A match cannot end level'); sfx('error'); return; }
@@ -1642,8 +1777,8 @@ async function sendEdit(id){
   busy = false;
   ed = { id: null, my: 0, their: 0 };
   sfx('sent');
-  toast('Sent back for confirmation');
-  renderHome(); updateDots();
+  toast('Sent back for review');
+  go('home'); updateDots();
 }
 
 async function confirmReport(id){
@@ -1653,14 +1788,14 @@ async function confirmReport(id){
   fresh.reviews = fresh.reviews.filter(r => r.gameId !== id);
   await S.set(UK(me.lower), fresh); me = fresh;
   if (!g || g.status !== 'confirm' || g.sa === g.sb) {
-    busy = false; toast('That score is no longer waiting'); renderHome(); return;
+    busy = false; toast('That game is no longer waiting'); go('home'); return;
   }
   const { wLower } = await commitGame(g);
   me = (await getUser(me.lower)) || me;
   seenMatches = me.matches.length;
   busy = false;
   toast('Logged to both match histories');
-  renderHome(); updateDots();
+  go('home'); updateDots();
   if (me.lower === wLower) {
     sfx('finish');
     if (me.streak >= 3) setTimeout(() => showFire(me.streak), 420);
@@ -1675,12 +1810,13 @@ async function declineReport(id){
   fresh.reviews = fresh.reviews.filter(r => r.gameId !== id);
   await S.set(UK(me.lower), fresh); me = fresh;
   busy = false;
-  toast('Score rejected');
-  renderHome(); updateDots();
+  toast('Game rejected');
+  go('home'); updateDots();
 }
 
 async function logResult(){
   if (!activeGame || activeGame.sa === activeGame.sb) return;
+  if (activeGame.status === 'active' && winState(activeGame) !== 'over') return;
   await chain;
   busy = true;
   const g = (await getGame(activeGame.id)) || activeGame;
