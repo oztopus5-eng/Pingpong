@@ -812,7 +812,7 @@ function toast(msg){
 }
 
 /* ================= helpers ================= */
-const VERSION = 'v2.8';
+const VERSION = 'v2.9';
 const $ = s => document.querySelector(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* run an async action with a highlight sweeping across the button that started it */
@@ -1395,7 +1395,7 @@ function renderGame(){
   if (!g || g.status === 'declined') {
     title.textContent = 'Invite to Play';
     backBtn.style.visibility = 'hidden';
-    if (document.getElementById('inviteFilter') && !g) { renderInviteList(); return; }
+    if (document.getElementById('inviteFilter') && !g) { renderInviteList(); renderReportBox(); return; }
     let h = `<div class="card">
       <div class="name center" style="font-size:16px;margin-bottom:14px">Invite a friend to start a match!</div>
       <div class="ifield">
@@ -1406,7 +1406,7 @@ function renderGame(){
     </div>
     <button class="btn block" id="sendInvite" disabled onclick="load(this,()=>sendInvite())">Send Invite</button>
 
-    <h3 class="sec">Add a new game</h3>
+    <h3 class="sec">Add new game</h3>
     <div class="card">
       <div class="dim" style="text-align:center;margin-bottom:12px">
         Already played somewhere else? Type the result and send it over.
@@ -1493,15 +1493,15 @@ function renderInviteList(){
 }
 function renderReportBox(){
   const box = $('#reportBox');
-  if (!box) return;
-  if (!me.friends.length) { box.innerHTML = `<div class="empty">Add a friend first.</div>`; return; }
+  if (!box) return false;
+  if (!me.friends.length) { box.innerHTML = `<div class="empty">Add a friend first.</div>`; return true; }
   if (!repTarget) {
     box.innerHTML = me.friends.map(f => `<div class="lrow">
       <div class="row grow" style="min-width:0">${av(nameOf(f),'sm',f)}
         <div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(nameOf(f))}</div>
         <div class="dim trunc">@${esc(f)}</div></div></div>
       <button class="chip" onclick="pickReport('${esc(f)}')">Add</button></div>`).join('');
-    return;
+    return true;
   }
   const name = esc(nameOf(repTarget));
   box.innerHTML = `<div class="row" style="gap:10px">
@@ -1509,8 +1509,9 @@ function renderReportBox(){
       ${stepper(name, rep_.their, "adjRep('their',-1)", "adjRep('their',1)")}
     </div>
     <button class="btn block" style="margin-top:12px" ${rep_.my===rep_.their?'disabled':''}
-      onclick="load(this,()=>sendReport())">Send to ${name} to review</button>
+      onclick="load(this,()=>sendReport())">Add new game</button>
     <button class="btn block quiet" style="margin-top:4px" onclick="pickReport('${esc(repTarget)}')">Pick someone else</button>`;
+  return true;
 }
 /* ---- reviewing a game someone added ---- */
 let reviewId = null;
@@ -1710,8 +1711,15 @@ async function commitGame(g){
    bounces back to the first player, and so on, until somebody confirms. */
 let repTarget = null, rep_ = { my: 0, their: 0 }, ed = { id: null, my: 0, their: 0 };
 
-function pickReport(f){ repTarget = (repTarget === f ? null : f); rep_ = { my: 0, their: 0 }; renderGame(); }
-function adjRep(k, d){ rep_[k] = Math.max(0, rep_[k] + d); renderGame(); }
+function pickReport(f){
+  repTarget = (repTarget === f ? null : f);
+  rep_ = { my: 0, their: 0 };
+  if (!renderReportBox()) renderGame();
+}
+function adjRep(k, d){
+  rep_[k] = Math.max(0, rep_[k] + d);
+  if (!renderReportBox()) renderGame();
+}
 function adjEd(k, d){ ed[k] = Math.max(0, ed[k] + d); renderReview(); }
 function stepper(label, val, onMinus, onPlus){
   return `<div class="stepper"><div class="who">${label}</div>
@@ -1737,7 +1745,7 @@ async function sendReport(){
   repTarget = null; rep_ = { my: 0, their: 0 };
   sfx('sent');
   toast(`Sent to ${them.username} to review`);
-  renderGame();
+  if (!renderReportBox()) renderGame();
 }
 
 function startEdit(id){
