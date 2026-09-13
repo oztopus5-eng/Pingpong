@@ -89,6 +89,8 @@ h3.sec{font-size:15px;font-weight:800;color:var(--navy);margin:20px 4px 10px}
 .btn.danger{border-color:#d86a6a;color:#b53b3b;
   box-shadow:0 0 0 4px rgba(216,106,106,.1), 0 0 16px rgba(216,106,106,.26), inset 0 0 14px rgba(250,190,190,.3)}
 .btn[disabled]{opacity:.4;pointer-events:none;box-shadow:none}
+.plusmark{display:inline-grid;place-items:center;width:23px;height:23px;border-radius:50%;
+  border:2px solid currentColor;font-size:16px;line-height:1;font-weight:800;padding-bottom:2px}
 .chip{background:rgba(255,255,255,.7);color:var(--blue-2);border:2px solid #a8cdee;border-radius:13px;
   padding:7px 16px;font-size:14px;font-weight:800;position:relative;overflow:hidden;
   box-shadow:inset 0 0 10px rgba(160,210,250,.25);transition:transform .09s ease,border-color .18s}
@@ -812,7 +814,7 @@ function toast(msg){
 }
 
 /* ================= helpers ================= */
-const VERSION = 'v2.9';
+const VERSION = 'v3.0';
 const $ = s => document.querySelector(s);
 const wait = ms => new Promise(r => setTimeout(r, ms));
 /* run an async action with a highlight sweeping across the button that started it */
@@ -1406,14 +1408,7 @@ function renderGame(){
     </div>
     <button class="btn block" id="sendInvite" disabled onclick="load(this,()=>sendInvite())">Send Invite</button>
 
-    <h3 class="sec">Add new game</h3>
-    <div class="card">
-      <div class="dim" style="text-align:center;margin-bottom:12px">
-        Already played somewhere else? Type the result and send it over.
-        It only counts once they've reviewed it.
-      </div>
-      <div id="reportBox"></div>
-    </div>`;
+    <div id="reportBox"></div>`;
     if (g) {
       const opp = oppOf(g);
       h = `<div class="card center">
@@ -1494,23 +1489,48 @@ function renderInviteList(){
 function renderReportBox(){
   const box = $('#reportBox');
   if (!box) return false;
-  if (!me.friends.length) { box.innerHTML = `<div class="empty">Add a friend first.</div>`; return true; }
-  if (!repTarget) {
-    box.innerHTML = me.friends.map(f => `<div class="lrow">
-      <div class="row grow" style="min-width:0">${av(nameOf(f),'sm',f)}
-        <div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(nameOf(f))}</div>
-        <div class="dim trunc">@${esc(f)}</div></div></div>
-      <button class="chip" onclick="pickReport('${esc(f)}')">Add</button></div>`).join('');
+
+  // closed: just the button
+  if (!repOpen) {
+    box.innerHTML = `<button class="btn block" style="margin-top:14px" onclick="openReport()">
+      <span class="plusmark">+</span> Add new game</button>`;
     return true;
   }
+
+  if (!me.friends.length) {
+    box.innerHTML = `<div class="card"><div class="empty">Add a friend first, then you can log a game against them.</div>
+      <button class="btn block ghost" onclick="go('friends')">Add Friends</button>
+      <button class="btn block quiet" style="margin-top:4px" onclick="closeReport()">Cancel</button></div>`;
+    return true;
+  }
+
+  // open, nobody picked yet: choose the opponent
+  if (!repTarget) {
+    box.innerHTML = `<div class="card">
+      <div class="name center" style="font-size:16px;margin-bottom:4px">Who did you play?</div>
+      <div class="dim center" style="margin-bottom:10px">They will get it to review before it counts.</div>
+      ${me.friends.map(f => `<div class="lrow" style="cursor:pointer" onclick="pickReport('${esc(f)}')">
+        <div class="row grow" style="min-width:0">${av(nameOf(f),'sm',f)}
+          <div class="grow trunc"><div class="name trunc" style="font-size:15px">${esc(nameOf(f))}</div>
+          <div class="dim trunc">@${esc(f)}</div></div></div>
+        <span class="chip">Pick</span></div>`).join('')}
+      <button class="btn block quiet" style="margin-top:10px" onclick="closeReport()">Cancel</button>
+    </div>`;
+    return true;
+  }
+
+  // opponent picked: enter the score
   const name = esc(nameOf(repTarget));
-  box.innerHTML = `<div class="row" style="gap:10px">
+  box.innerHTML = `<div class="card">
+    <div class="name center" style="font-size:16px;margin-bottom:10px">You vs ${name}</div>
+    <div class="row" style="gap:10px">
       ${stepper('You', rep_.my, "adjRep('my',-1)", "adjRep('my',1)")}
       ${stepper(name, rep_.their, "adjRep('their',-1)", "adjRep('their',1)")}
     </div>
     <button class="btn block" style="margin-top:12px" ${rep_.my===rep_.their?'disabled':''}
-      onclick="load(this,()=>sendReport())">Add new game</button>
-    <button class="btn block quiet" style="margin-top:4px" onclick="pickReport('${esc(repTarget)}')">Pick someone else</button>`;
+      onclick="load(this,()=>sendReport())">Send to ${name} to review</button>
+    <button class="btn block quiet" style="margin-top:4px" onclick="pickReport('${esc(repTarget)}')">Pick someone else</button>
+  </div>`;
   return true;
 }
 /* ---- reviewing a game someone added ---- */
@@ -1709,7 +1729,9 @@ async function commitGame(g){
 /* ================= REPORTING A SCORE AFTER THE FACT =================
    One player types the result, the other confirms or amends it. An amendment
    bounces back to the first player, and so on, until somebody confirms. */
-let repTarget = null, rep_ = { my: 0, their: 0 }, ed = { id: null, my: 0, their: 0 };
+let repOpen = false, repTarget = null, rep_ = { my: 0, their: 0 }, ed = { id: null, my: 0, their: 0 };
+function openReport(){ repOpen = true; repTarget = null; rep_ = { my: 0, their: 0 }; if (!renderReportBox()) renderGame(); }
+function closeReport(){ repOpen = false; repTarget = null; if (!renderReportBox()) renderGame(); }
 
 function pickReport(f){
   repTarget = (repTarget === f ? null : f);
@@ -1742,7 +1764,7 @@ async function sendReport(){
     mine: g.sb, theirs: g.sa, edited: false });
   await S.set(UK(them.lower), them);
   busy = false;
-  repTarget = null; rep_ = { my: 0, their: 0 };
+  repTarget = null; repOpen = false; rep_ = { my: 0, their: 0 };
   sfx('sent');
   toast(`Sent to ${them.username} to review`);
   if (!renderReportBox()) renderGame();
